@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-require_relative 'doi'
 require_relative 'session'
-require_relative 'paginate'
 require 'log4r'
 
 helpers do
-  include Doi
   include Session
   include Log4r
   #ap logger
@@ -15,39 +12,21 @@ helpers do
     Log4r::Logger['test']    
   end
 
-#  def load_config
-#    @conf ||= YAML.load_file('config/settings.yml')
-#  end
-
-  def partial template, locals
-    haml template.to_sym, :layout => false, :locals => locals
+  def load_config
+    @conf ||= YAML.load_file('config/settings.yml')
   end
 
-  def citations doi
-    citations = settings.citations.find({'to.id' => doi})
 
-    citations.map do |citation|
-      hsh = {
-        :id => citation['from']['id'],
-        :authority => citation['from']['authority'],
-        :type => citation['from']['type'],
-      }
-
-      if citation['from']['authority'] == 'cambia'
-        patent = settings.patents.find_one({:patent_key => citation['from']['id']})
-        hsh[:url] = "http://lens.org/lens/patent/#{patent['pub_key']}"
-        hsh[:title] = patent['title']
-      end
-
-      hsh
-    end
-  end
-
-  def select query_params
-    logger.debug "building query to send to #{settings.solr_url}#{settings.solr_select}, with params:\n" + query_params.ai
+  def search q
+    logger.debug "building query to send to #{settings.provider.to_s}, with query string '#{q}'"
     page = query_page
     rows = query_rows
-    results = settings.solr.paginate page, rows, settings.solr_select, :params => query_params
+    results =
+   # settings.provider.do_search q
+         # build query from qstring & other request params needed
+         # send to conn defined for provider
+
+    #results = settings.solr.paginate page, rows, settings.solr_select, :params => query_params
   end
 
   def response_format
@@ -147,6 +126,8 @@ helpers do
       'score desc'
     end
   end
+
+
 
   def search_query
     fq = facet_query
