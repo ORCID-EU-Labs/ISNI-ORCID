@@ -1,6 +1,6 @@
-= partial :search_header, :page => page
-
-:css
+<%= partial :search_header, :page => page %>
+<css>
+  
   .well-transparent {
     background-color: transparent;
   }
@@ -10,23 +10,31 @@
     display: none;
   }
 
-.row-fluid
-  .span2
-  .span8
-    .page-header
-      %h2 Synchronize with ORCID
-    .well.well-large
-      .pull-right
-        %i.icon-ok.lead#sync-ok
-        %button.btn.btn-warning#sync-button
-          %i.icon-refresh#sync-icon
-          Sync with ORCID
-      %span.lead
-        Sync changes from your ORCID profile to this site
-        
-= partial :search_footer, :page => page
 
-:javascript
+</css>
+<div class="row-fluid">
+  <div class="span2"></div>
+  <div class="span8">
+    <div class="page-header">
+      <h2>Synchronize with ORCID</h2>
+    </div>
+    <div class="well well-large">
+      <div class="pull-right">
+        <i class="icon-ok lead" id="sync-ok"></i>
+        <button class="btn btn-warning" id="sync-button">
+          <i class="icon-refresh" id="sync-icon"></i>
+          Sync with ORCID
+        </button>
+      </div>
+      <span class="lead">
+        Sync changes from your ORCID profile to this site
+      </span>
+    </div>
+  </div>
+</div>
+<%= partial :search_footer, :page => page %>
+<script>
+  
   $(document).ready(function() {
     var performSync = function() {
       $.ajax({url: '/orcid/sync',
@@ -65,3 +73,6 @@
       return false;
     });
   });
+
+
+</script>

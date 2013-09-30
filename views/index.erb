@@ -1,0 +1,102 @@
+<script src="/javascripts/fields.js" type="text/javascript"></script>
+<script src="/javascripts/app.js" type="text/javascript"></script>
+<div class="row-fluid">
+  <div class="page-header">
+    <h1>
+      <span class="cr-red">DataCite</span>
+      <span>Search</span>
+    </h1>
+  </div>
+</div>
+<div class="row-fluid">
+  <p class="lead">
+    This page will help you find metadata held by DataCite.
+    Using this page you can
+    <strong>look up metadata</strong>
+    for a DOI,
+    <strong>find the DOI</strong>
+    for a citation or turn a list of
+    <strong>citations into DOIs.</strong>
+  </p>
+</div>
+<div class="row-fluid" style="margin-top: 50px">
+  <ul class="nav nav-tabs" id="search-tabs">
+    <li class="active">
+      <a data-toggle="tab" href="#simple-search">
+        <h6 class="simple-search">
+          <i class="icon-search"></i>
+          Simple
+        </h6>
+      </a>
+    </li>
+    <li>
+      <a data-toggle="tab" href="#adv-search">
+        <h6 class="adv-search">
+          <i class="icon-wrench"></i>
+          Advanced
+        </h6>
+      </a>
+    </li>
+    <li>
+      <a data-toggle="tab" href="#bib-search" id="bib-search-link">
+        <h6 class="bib-search">
+          <i class="icon-list"></i>
+          Bibliography
+        </h6>
+      </a>
+    </li>
+  </ul>
+</div>
+<div class="row-fluid">
+  <div class="tab-content">
+    <div class="tab-pane fade active in" id="simple-search">
+      <form class="form-search well">
+        <p class="lead">Find a work and its metadata by entering a DOI, citation or any terms      </p>
+        <div class="middle">
+          <input class="input-xxlarge search-query" id="simple-search-text" placeholder="DOI, citation, anything..." type="text"></input>
+          <button class="btn" id="simple-search-btn" type="submit">Search</button>
+        </div>
+      </form>
+    </div>
+    <div class="tab-pane fade" id="adv-search">
+      <form class="form-horizontal well">
+        <p class="lead">Find a work, its metadata and DOI by entering bibliographic information</p>
+        <div class="control-group">
+          <label class="control-label">I'm looking for</label>
+          <div class="controls">
+            <select class="input-xlarge" id="adv-search-kind">
+              <option value="article">a journal article</option>
+              <option value="conference-paper">a conference paper</option>
+              <option value="chapter">a book chapter</option>
+              <option value="book">a book title</option>
+              <option value="other">something else (like a standard, report or dissertation)</option>
+            </select>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">That matches</label>
+          <div class="controls">
+            <div id="adv-search-expander"></div>
+          </div>
+        </div>
+        <div id="adv-search-fields"></div>
+        <div class="form-actions right">
+          <span id="completion-msg">Pick fields above. Be sure to pick required fields.</span>
+          <button class="btn disabled" id="adv-search-btn" type="submit">Search</button>
+        </div>
+      </form>
+    </div>
+    <div class="tab-pane fade" id="bib-search">
+      <form class="form-vertical well" id="bib-search-well">
+        <p class="lead">Give us a bunch of citations and we'll find DOIs for them</p>
+        <label>
+          Citations (one per line)
+        </label>
+        <textarea id="bib-search-text"></textarea>
+        <div class="form-actions right">
+          <button class="btn" type="submit">Find DOIs</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

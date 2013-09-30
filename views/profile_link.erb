@@ -1,0 +1,51 @@
+<% if signed_in?   %>
+  <div class="dropdown">
+    <img src="/images/orcid_24x24.gif"/>
+    <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button">
+      <%= user_display %>
+      <b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu" role="menu" style="right: 0; left: auto;">
+      <li>
+        <a href="<%= @conf['orcid']['site'] %>/<%= session[:orcid][:uid] %>" target="_blank">
+          <i class="icon-external-link"></i>
+          My ORCID: #{session[:orcid][:uid]}
+        </a>
+      </li>
+      <li>
+        <a href="/orcid/activity">
+          <i class="icon-th-list"></i>
+          My claimed works in DataCite
+        </a>
+      </li>
+      <li class="divider"></li>
+      <li>
+        <a href="/auth/signout?redirect_uri=<%= URI.encode(request.fullpath) %>">
+          <i class="icon-signout"></i>
+          Sign out
+        </a>
+      </li>
+    </ul>
+  </div>
+<% else %>
+  <a class="sign-in-link" href="#">
+    <img src="/images/orcid_24x24.gif"/>
+    Sign in with ORCID
+  </a>
+  <script>
+    
+    $(document).ready(function() {
+      $('.sign-in-link').click(function(e) {
+        $.oauthpopup({path: '/auth/orcid',
+                      callback: function() {
+                        document.location.reload(true);
+                      }});
+        e.preventDefault();
+        return false;
+      });
+    });
+
+
+  </script>
+<% end %>
+

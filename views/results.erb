@@ -1,0 +1,63 @@
+<%= partial :search_header, :locals => {page:  page} %>
+
+<div class="row-fluid">
+  <div class="span3"></div>
+  <div class="span9">
+    <% unless flash[:error].nil? %>
+      <div class="alert alert-error">
+        <%= flash[:error] %>
+      </div>
+    <% end %>
+    <% unless page[:page].nil? || page[:paginate].nil? || params['q'] == "" %>
+      <%= partial :search_box, :page => page %>
+      <div class="list-info">
+        <div class="pull-right">
+          <h6 class="number">
+            <%= "#{page[:paginate].total_rows} results - page #{page[:page]} of #{page[:paginate].total_pages}" %>
+          </h6>
+        </div>
+        <span>
+          <h6>
+            Sort by:
+            <% if page[:bare_sort] == 'publicationYear' %>
+              <a href="<%= search_link({:sort => 'score'}) %>">relevance</a>
+              <b>publication year</b>
+            <% else %>
+              <b>relevance</b>
+              <a href="<%= search_link({:sort => 'publicationYear'}) %>">publication year</a>
+            <% end %>
+          </h6>
+        </span>
+        <div class="pull-left">
+          <h6>
+            Filter:
+            <% if page[:filter] == 'showUnclaimed' %>
+              <a href="<%= search_link({:filter => 'showAll'}) %>">all</a>
+              <b>only unclaimed by me</b>
+              <a href="<%= search_link({:filter => 'showClaimed'}) %>">only claimed by me</a>
+            <% elsif page[:filter] == 'showClaimed' %>
+              <a href="<%= search_link({:filter => 'showAll'}) %>">all</a>
+              <a href="<%= search_link({:filter => 'showUnclaimed'}) %>">only claimed by me</a>
+              <b>only claimed by me</b>
+            <% else %>
+              <b>all</b>
+              <a href="<%= search_link({:filter => 'showUnclaimed'}) %>">only unclaimed by me</a>
+              <a href="<%= search_link({:filter => 'showClaimed'}) %>">only claimed by me</a>
+            <% end %>
+          </h6>
+        </div>
+      </div>
+      <%= partial :item_list, :page => page %>
+      <div class="item-paging bottom">
+        <%= will_paginate page[:paginate], :renderer => BootstrapLinkRenderer, :inner_window => 2 %>
+      </div>
+    <% else %>
+      <h2>
+        Example Queries
+      </h2>
+      <%= partial :help_list, :page => page %>
+    <% end %>
+  </div>
+</div>
+<%= partial :search_footer, :page => page %>
+

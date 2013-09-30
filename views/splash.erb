@@ -1,0 +1,21 @@
+<div class="row-centered break-below">
+  <%= partial :search_header, :locals => {page:  page.merge({:mini_header => true})} %>
+  <% unless flash[:error].nil? %>
+    <div class="alert alert-error">
+      <%= flash[:error] %>
+    </div>
+  <% end %>
+</div>
+<div class="spacer"></div>
+<div class="row-centered">
+  <h1 class="logo">
+    <img src="/images/logo.png"/>
+  </h1>
+  <p class="lead">
+    Connect your ORCiD to your ISNI. 
+  </p>
+  <div class="alert">
+    This site is in beta. Please use the contact link for feedback.
+  </div>
+</div>
+
