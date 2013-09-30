@@ -1,45 +1,16 @@
-# DataCite-ORCID metadata search and claim
+# ISNI2ORCID - linking ISNI and ORCID identifiers
 
-An online tool for searching for works in the DataCite metadata
-catalogue and adding them to an ORCID profile.
+Tool for searching the [ISNI registry](http://isni.org) by name and adding one or more
+ISNIs to ORCID profile as as external identifiers.
 
-This is a project by [ORCID EU labs](https://github.com/ORCID-EU-Labs/)  and [ODIN - ORCID and DataCite Interoperability Network](http://odin-project.eu)
-
-Try out our live running instance at [http://datacite.labs.orcid-eu.org](http://datacite.labs.orcid-eu.org)
+This is a project by [ORCID EU labs](https://github.com/ORCID-EU-Labs/)  and [ODIN - ORCID and DataCite Interoperability Network](http://odin-project.eu).
 
 
 ## Background 
 
-The application is a fork of the Sinatra-based [CrossRef Metadata Search](http://search.crossref.org) tool by by [CrossRef Labs](http://labs.crossref.org)
-
-
 
 ## Installation
 
-### Requirements
-
-- Ruby (any version)
-- git
-- Vagrant: http://www.vagrantup.com
-- Virtualbox: https://www.virtualbox.org
-
-### Installation
-
-    git clone https://github.com/ORCID-EU-Labs/cr-search.git
-    cd cr-search
-    vagrant up
-
-If you don't see any errors from the last command, you now have a properly
-configured Ubuntu virtual machine running `cr-search`. You can point your
-browser to `http://localhost:8088`.
-
-## Testing
-
-We use Rspec for unit testing and Cucumber for acceptance testing:
-
--   `rake spec`
-
--   `rake features`
 
 
 ## License
