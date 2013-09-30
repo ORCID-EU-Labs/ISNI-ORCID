@@ -9,8 +9,42 @@ This is a project by [ORCID EU labs](https://github.com/ORCID-EU-Labs/)  and [OD
 ## Background 
 
 
+The application is built with the ultra-simple Ruby-based [Sinatra framework](http://www.sinatrarb.com) and relies on the
+[omniauth-orcid](http://rubygems.org/gems/omniauth-orcid) gem for connecting to the ORCID registry.
+
+
 ## Installation
 
+The Ruby app should work in a range of Ruby / webserver environments. We've found
+a micro-virtualization and devops based environment most useful for development work.
+
+Here's how to quickly get up and running with a local virtual box using the provided Vagrant and Chef configuration:
+
+
+### Requirements
+
+- Ruby
+- git
+- Vagrant: http://www.vagrantup.com
+- Chef: http://www.opscode.com/chef/
+- Virtualbox: https://www.virtualbox.org
+
+
+### Setting up and provisioning the virtual machine
+
+*[todo add brief note on where to get the `precise64` box to build
+ from -  http://www.vagrantbox.es ]*
+
+
+    git clone https://github.com/ORCID-EU-Labs/isni2orcid.git
+    cd isni2orcid
+    vagrant up
+
+If you don't see any errors from the last command, you now have a properly
+configured Ubuntu virtual machine running the app. You can point your browser to `http://localhost:8088` and test-drive.
+
+
+*[todo: add more about installing & running]*
 
 
 ## License
