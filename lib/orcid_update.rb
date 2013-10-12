@@ -29,26 +29,33 @@ class OrcidUpdate
       # Need to check both since @oauth may or may not have been serialized back and forth from JSON.
       uid = @oauth[:uid] || @oauth['uid']
       
-      logger.info "Updating user #{uid}"
+      logger.info "Updating user record with info for ORCiD #{uid}"
 
-      opts = {:site => @conf['orcid']['site']}
-      client = OAuth2::Client.new(@conf['orcid']['client_id'], @conf['orcid']['client_secret'], opts)
-      token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
+      #opts = {:site => @conf['orcid']['site']}
+      #client = OAuth2::Client.new(@conf['orcid']['client_id'], @conf['orcid']['client_secret'], opts)
+      #token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
       headers = {'Accept' => 'application/json'}
-      response = token.get "/#{uid}/orcid-works", {:headers => headers}
+      logger.info "GETing profile info via ORCID API for #{uid}"
+      response = Faraday.get "http://pub.sandbox-1.orcid.org/" + uid, {}, headers
+
+      # response = token.get "/#{uid}/orcid-profile", {:headers => headers}
 
       if response.status == 200
-        puts response.body
         response_json = JSON.parse(response.body)
+        logger.debug "Parsed JSON response: " + response_json.ai
+
+        # ToDo!! need 2x calls here, one to get the works IDs as before and another for the external IDs
         parsed_dois = parse_dois(response_json)
         query = {:orcid => uid}
         orcid_record = MongoData.coll('orcids').find_one(query)
 
         if orcid_record
+          logger.debug "Found existing ORCID record to update:" + orcid_record.ai
           orcid_record['dois'] = parsed_dois
           MongoData.coll('orcids').save(orcid_record)
         else
           doc = {:orcid => uid, :dois => parsed_dois, :locked_dois => []}
+          logger.debug "Creating new ORCID record: " + doc.ai
           MongoData.coll('orcids').insert(doc)
         end
       else

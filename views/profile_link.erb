@@ -9,13 +9,7 @@
       <li>
         <a href="<%= @conf['orcid']['site'] %>/<%= session[:orcid][:uid] %>" target="_blank">
           <i class="icon-external-link"></i>
-          My ORCID: #{session[:orcid][:uid]}
-        </a>
-      </li>
-      <li>
-        <a href="/orcid/activity">
-          <i class="icon-th-list"></i>
-          My claimed works in DataCite
+          My ORCID: <%= session[:orcid][:uid] %>
         </a>
       </li>
       <li class="divider"></li>

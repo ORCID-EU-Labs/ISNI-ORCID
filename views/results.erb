@@ -1,3 +1,4 @@
+
 <%= partial :search_header, :locals => {page:  page} %>
 
 <div class="row-fluid">
@@ -8,12 +9,14 @@
         <%= flash[:error] %>
       </div>
     <% end %>
-    <% unless page[:page].nil? || page[:paginate].nil? || params['q'] == "" %>
-      <%= partial :search_box, :page => page %>
+
+    <%# unless page[:page].nil? || page[:paginate].nil? || params['q']   == "" %>
+    <% if 1 %>
+      <%= partial :search_box, :locals => {page: page} %>
       <div class="list-info">
         <div class="pull-right">
           <h6 class="number">
-            <%= "#{page[:paginate].total_rows} results - page #{page[:page]} of #{page[:paginate].total_pages}" %>
+            <%#= "#{page[:paginate].total_rows} results - page #{page[:page]} of #{page[:paginate].total_pages}" %>
           </h6>
         </div>
         <span>
@@ -47,9 +50,9 @@
           </h6>
         </div>
       </div>
-      <%= partial :item_list, :page => page %>
+      <%= partial :item_list, :locals => {page: page} %>
       <div class="item-paging bottom">
-        <%= will_paginate page[:paginate], :renderer => BootstrapLinkRenderer, :inner_window => 2 %>
+        <%# will_paginate page[:paginate], :renderer => BootstrapLinkRenderer, :inner_window => 2 %>
       </div>
     <% else %>
       <h2>
@@ -60,4 +63,3 @@
   </div>
 </div>
 <%= partial :search_footer, :page => page %>
-

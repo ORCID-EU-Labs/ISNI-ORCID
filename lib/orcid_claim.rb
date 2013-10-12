@@ -4,7 +4,6 @@ require 'oauth2'
 require 'log4r'
 
 require_relative 'data'
-require_relative 'helpers'
 
 class OrcidClaim
 
@@ -14,13 +13,13 @@ class OrcidClaim
     Log4r::Logger['test']    
   end
 
-  def initialize oauth, work
+  def initialize oauth, record
     @oauth = oauth
-    @work = work
+    @record = record
   end
 
-  def self.perform oauth, work
-    OrcidClaim.new(oauth, work).perform
+  def self.perform oauth, record
+    OrcidClaim.new(oauth, record).perform
   end
   
   def logger
@@ -30,11 +29,13 @@ class OrcidClaim
   def perform
     oauth_expired = false
 
-    logger.info "Performing claim with @oauth and @work:"
+    logger.info "Performing claim with @oauth and @record:"
     logger.debug {@oauth.ai}
-    logger.debug {@work.ai}
-    logger.debug "Works XML: " + to_xml
-    
+    logger.debug {@record.ai}
+
+    # ToDo: add check for type of claim (bio vs. work) and have 2x XML-generation methods
+    logger.debug "XML for POSTing: " + to_xml
+
     load_config
 
     # Need to check both since @oauth may or may not have been serialized back and forth from JSON.
@@ -46,14 +47,15 @@ class OrcidClaim
     client = OAuth2::Client.new( @conf['orcid']['client_id'],  @conf['orcid']['client_secret'], opts)
     token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
     headers = {'Accept' => 'application/json'}
-    response = token.post("/#{uid}/orcid-works") do |post|
+    response = token.post("/#{uid}/orcid-bio/external-identifiers") do |post|
       post.headers['Content-Type'] = 'application/orcid+xml'
       post.body = to_xml
     end
     logger.debug "response obj=" + response.ai
     
     # Raise firm exception if we do NOT get an a-OK response back from the POST operation
-    if response.status == 201 
+    #if response.status == 201 
+    if response.status == 200
       return response.status
     else
       raise OAuth2::Error "Bad response from ORCID API: HTTP status=#{response.status}, error message=" + response.body
@@ -200,6 +202,19 @@ class OrcidClaim
     end
   end
 
+  def insert_extid_common_name xml
+    xml.send(:'external-id-common-name', "ISNI")
+  end
+
+  def insert_extid_ref xml
+    xml.send(:'external-id-reference', @record['id'])    
+  end
+
+  def insert_extid_url xml
+    xml.send(:'external-id-url', "http://isni.org/" + @record['id'])
+  end
+
+
   def to_xml
     root_attributes = {
       :'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
@@ -207,19 +222,17 @@ class OrcidClaim
       :'xmlns' => 'http://www.orcid.org/ns/orcid'
     }
 
+
     builder = Nokogiri::XML::Builder.new do |xml|
       xml.send(:'orcid-message', root_attributes) {
         xml.send(:'message-version', '1.0.8')
         xml.send(:'orcid-profile') {
-          xml.send(:'orcid-activities') {
-            xml.send(:'orcid-works') {
-              xml.send(:'orcid-work') {
-                insert_titles(xml)
-                insert_citation(xml)
-                insert_type(xml)
-                insert_pub_date(xml)
-                insert_ids(xml)
-                insert_contributors(xml)
+          xml.send(:'orcid-bio') {
+            xml.send(:'external-identifiers') {
+              xml.send(:'external-identifier') {
+                insert_extid_common_name(xml)
+                insert_extid_ref(xml)
+                insert_extid_url(xml)
               }
             }
           }
@@ -227,5 +240,10 @@ class OrcidClaim
       }
     end.to_xml
   end
+
+  def load_config
+    @conf ||= YAML.load_file('config/settings.yml')
+  end
+  
   
 end

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 require_relative 'session'
+require_relative 'result'
+
 require 'log4r'
 
 helpers do
@@ -16,17 +18,122 @@ helpers do
     @conf ||= YAML.load_file('config/settings.yml')
   end
 
+  def search server, q
+    logger.debug "Building query from name variant string '#{q}'"
 
-  def search q
-    logger.debug "building query to send to #{settings.provider.to_s}, with query string '#{q}'"
-    page = query_page
-    rows = query_rows
-    results =
-   # settings.provider.do_search q
-         # build query from qstring & other request params needed
-         # send to conn defined for provider
+    # Load up profile info for the signed-in user
+    claimed_ids = []
+    profile_ids = []
 
-    #results = settings.solr.paginate page, rows, settings.solr_select, :params => query_params
+    if signed_in?
+      orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
+      unless orcid_record.nil?
+        logger.debug "Getting list of claimed IDs in ORCID record for signed-in user #{sign_in_id}"
+        claimed_ids = orcid_record['ids'] + orcid_record['locked_ids'] if orcid_record
+        profile_ids = orcid_record['ids']
+      end
+    end
+
+    results = []
+    build_query q do |params|
+      logger.info "Hitting the ISNI API with query string '#{q}'"
+      logger.debug "query params: " + params.ai
+      res = server.get '/sru/DB=1.2/', params
+      #logger.debug "Got response obj " + res.ai
+      logger.debug "Full response body: " + res.body
+      parse_isni_response res.body do |isni, family_name, given_names, other_names|
+
+        # Construct a result object for each ISNI record returned from the search
+        # NB this first iteration is hardcoded to ingest ISNI records. Need to generalize this
+        # and possibly allow for subclasses/callbacks to handle other types of records.
+        
+        in_profile = profile_ids.include?(isni)
+        claimed = claimed_ids.include?(isni)
+      
+        user_state = {:in_profile => in_profile, :claimed => claimed}      
+        result = SearchResult.new :id => isni, :family_name => family_name, :given_names => given_names, 
+                                  :other_names => other_names, :user_state => user_state
+        logger.debug "created result obj: " + result.ai
+        results.push result
+      end
+    end
+    return results
+  end
+  
+  # Parse the XML response from the search API
+  def parse_isni_response res_body
+    
+    results = []
+    parsed_response = MultiXml.parse(res_body)['searchRetrieveResponse']
+    return unless parsed_response['records']
+    records = parsed_response['records']['record']
+    records = [records] if !records.kind_of? Array
+    
+    records.each do |r|  
+      rdata = r['recordData']['responseRecord']['ISNIAssigned']
+      logger.debug "full ISNI metadata record: " + rdata.ai
+      isni     = rdata['isniUnformatted']
+      isni_uri = rdata['isniURI']
+      logger.debug "sources: " + rdata['ISNIMetadata']['sources'].ai
+
+      # ToDo: grab sources list also
+
+
+      # Collect all personal names into a single master list
+      names = rdata['ISNIMetadata']['identity']['personOrFiction']['personalName']
+      names.nil? or logger.info "Found #{names.size} personal name(s) in ISNI record"
+      name_variants = rdata['ISNIMetadata']['identity']['personOrFiction']['personalNameVariant']
+      name_variants.nil? or logger.info "Found #{name_variants.size} personal name variants in ISNI record"
+      names = [names] if !names.kind_of? Array
+      name_variants = [name_variants] if !name_variants.kind_of? Array      
+      namelist = []
+      is_first = 1
+      family_name = ""
+      given_names = ""
+      (names + name_variants).each do |pname|    
+        next if pname.nil?
+        next if pname['surname'] == "" && pname['forename'] == ""
+        pnamestring = (pname['surname']||"") + ", " + (pname['forename']||"")
+        logger.debug "  - adding pname: --#{pnamestring}--"
+        namelist.push pnamestring
+
+        # We'll arbitrarily grab the 1st name on the list and set as the "primary"        
+        if is_first
+          logger.info "Setting #{pname['surname']}, #{pname['forename']} as the primary pname"
+          family_name = pname['surname']
+          given_names = pname['forename']
+          is_first = nil
+        end
+
+      end
+
+      # there's loads of name duplications in the ISNI records, so let's uniquify the list
+      namelist.uniq! 
+      if namelist.size == 0 
+        logger.info "no names found for ISNI " + isni
+        next
+      end
+      logger.debug "Got total #{namelist.size} personal name(s) after cleaning:"
+      namelist.each do |n|
+        logger.debug "  - pname: #{n}"
+      end
+
+      # And finally set all the names except the first one as other names for this person
+      namelist.shift
+
+      # Execute the block passed in by the caller
+      yield isni, family_name, given_names, namelist
+
+      # ToDo later: deal with the works in the ISNI profile      
+      #puts "Associated works:"
+      #rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity'].each do |cwork|
+        
+        # foreach title (!!!??)
+        #logger.debug "  - Work: #{cwork['titleOfWork']['title']}, #{pname['forename']}"
+        
+        # foreach identifiers
+      #end
+    end
   end
 
   def response_format
@@ -45,79 +152,44 @@ helpers do
     end
   end
 
-  def query_rows
-    if params.has_key? 'rows'
-      params['rows'].to_i
-    else
-      settings.default_rows
-    end
-  end
+  # Set up the request to send to the ISNI API
+  def build_query q, &block
+    
+    # TODO smarter name munging
+    #  first generate the namelist, switch around lastname/initials etc.
+    #  then build the qstring that ISNI wants
 
-  def query_columns
-    ['doi','creator','title','publisher','publicationYear','relatedIdentifier','alternateIdentifier','resourceTypeGeneral','resourceType','nameIdentifier','rights','version', 'score']
-  end
+    query_params = {
+      # Fixed parameters that are always the same for each request
+      'operation' => 'searchRetrieve',
+      'recordSchema' => 'isni-b',
+      # The query string itself which specific to each API request
+      'query' => names2qstring([q])
+    }
 
-  def query_terms
-    query_info = query_type
-    case query_info[:type]
-    when :doi
-      "doi:\"#{query_info[:value]}\""
-    when :short_doi
-      "doi:\"#{query_info[:value]}\""
-    when :issn
-      "*:#{query_info[:value]}"
-    when :orcid
-      "nameIdentifier:ORCID\:#{query_info[:value]}"
-    when :urn
-      "alternateIdentifier:#{query_info[:value]}"
-    when :name
-      query_info[:value].map { |name| "creator:\"#{name.strip}\"~4"}.join(" OR ")
-    else
-      scrub_query(params['q'], false)
-    end
-  end
 
-  def query_type
-    if doi? params['q']
-      {:type => :doi, :value => to_doi(params['q']).downcase}
-    elsif short_doi?(params['q']) || very_short_doi?(params['q'])
-      {:type => :short_doi, :value => to_long_doi(params['q'])}
-    elsif issn? params['q']
-      {:type => :issn, :value => params['q'].strip.upcase}
-    elsif orcid? params['q']
-      {:type => :orcid, :value => params['q'].strip}
-    elsif urn? params['q']
-      {:type => :urn, :value => params['q'].strip}
-    elsif name? params['q']
-      names = session[:orcid][:info][:other_names].nil? ? [session[:orcid][:info][:name]] : [session[:orcid][:info][:name]] | session[:orcid][:info][:other_names]
-      {:type => :name, :value => names.uniq}
-    else
-      {:type => :normal}
-    end
+    
+    puts "about to yield"
+    yield query_params #, ctype
   end
+  
 
-  def abstract_facet_query
-    fq = {}
-    settings.facet_fields.each do |field|
-      if params.has_key? field
-        params[field].split(';').each do |val|
-          fq[field] ||= []
-          fq[field] << val
-        end
-      end
+  
+  # Prepare the list of names as an URI-escaped query string, just like ISNI wants it
+  def names2qstring names
+    names4query = []
+    names.each do |n|
+      logger.debug "  -Adding #{n} to name list"
+      #names4query.push 'pica.nw=' + URI.escape('"' + n + '"') 
+      names4query.push 'pica.nw=' + '"' + n + '"'
     end
-    fq
+    qstring = names4query.join " OR "
+    logger.debug "Final query string:" + qstring     
+    return qstring
+    #example: 'pica.nw="thorisson, hermann" OR pica.nw="jones"';
   end
+  
 
-  def facet_query
-    fq = ['has_metadata:true','NOT relatedIdentifier:IsPartOf\:*']
-    abstract_facet_query.each_pair do |name, values|
-      values.each do |value|
-        fq << "#{name}: \"#{value}\""
-      end
-    end
-    fq
-  end
 
   def sort_term
     if 'publicationYear' == params['sort']
@@ -126,6 +198,8 @@ helpers do
       'score desc'
     end
   end
+
+
 
 
 
@@ -180,28 +254,8 @@ helpers do
     abstract_facet_query.has_key? field_name
   end
 
-  def search_link opts
-    fields = settings.facet_fields + ['q', 'sort'] # 'filter' ??
-    parts = fields.map do |field|
-      if opts.has_key? field.to_sym
-        "#{field}=#{CGI.escape(opts[field.to_sym])}"
-      elsif params.has_key? field
-        params[field].split(';').map do |field_value|
-          "#{field}=#{CGI.escape(params[field])}"
-        end
-      end
-    end
 
-    "#{request.path_info}?#{parts.compact.flatten.join('&')}"
-  end
-
-  def authors_text contributors
-    authors = contributors.map do |c|
-      "#{c['given_name']} #{c['surname']}"
-    end
-    authors.join ', '
-  end
-
+  # Modify to work with claimed profiles, rather than claimed works/DOIs
   def search_results solr_result, oauth = nil
     claimed_dois = []
     profile_dois = []
@@ -226,6 +280,7 @@ helpers do
     end
   end
 
+
   def scrub_query query_str, remove_short_operators
     query_str = query_str.gsub(/[\"\.\[\]\(\)\-:;\/%]/, ' ')
     query_str = query_str.gsub(/[\+\!\-]/, ' ') if remove_short_operators
@@ -234,6 +289,8 @@ helpers do
     query_str.gsub(/NOT/, ' ')
   end
 
+
+  # probably cannot make use of this for non-Solr search index
   def index_stats
     count_result = settings.solr.get settings.solr_select, :params => {
       :q => '*:*',
@@ -296,6 +353,22 @@ helpers do
 
     stats
   end
+
+  def search_link opts
+    fields = settings.facet_fields + ['q', 'sort'] # 'filter' ??
+    parts = fields.map do |field|
+      if opts.has_key? field.to_sym
+        "#{field}=#{CGI.escape(opts[field.to_sym])}"
+      elsif params.has_key? field
+        params[field].split(';').map do |field_value|
+          "#{field}=#{CGI.escape(params[field])}"
+        end
+      end
+    end
+
+    "#{request.path_info}?#{parts.compact.flatten.join('&')}"
+  end
+
 
 end
 

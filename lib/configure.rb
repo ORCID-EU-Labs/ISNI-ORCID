@@ -1,5 +1,8 @@
+require 'faraday'
+require 'faraday_middleware'
 
 require 'log4r'
+
 
 configure do
 
@@ -16,11 +19,16 @@ configure do
   # Configure template engine for partials
   set :partial_template_engine, :erb
 
-  # Configure API connection to remote service of a certain class
-  set :provider, SearchResults.const_get(settings.provider_name.upcase)
-  set :server, settings.provider.connect(:url => settings.server_url)
-  logger.info "Configuring search provider " + settings.provider.to_s
-
+  # Configure API connection to remote service
+  logger.info "Configuring remote search API, connecting to " + settings.server_url
+  server = Faraday.new(:url => settings.server_url) do |c|
+    logger.debug c.ai
+    c.use FaradayMiddleware::FollowRedirects, :limit => 5
+    c.adapter :net_http
+    c.headers = {'Accept' => "application/xml"}
+  end
+  set :server, server
+  
   # Configure Mongo for local storage
   logger.info "Configuring Mongo: url=" + settings.mongo_host  
   set :mongo, Mongo::Connection.new(settings.mongo_host)
@@ -28,6 +36,10 @@ configure do
   set :bios, settings.mongo[settings.mongo_db]['bios']
   set :claims, settings.mongo[settings.mongo_db]['claims']
   set :orcids, settings.mongo[settings.mongo_db]['orcids']
+
+  # Set facet fields
+  set :facet_fields, ['type', 'something else']
+
 
   # Google analytics event tracking
   set :ga, Gabba::Gabba.new(settings.gabba[:cookie], settings.gabba[:url]) if settings.gabba[:cookie]
@@ -47,7 +59,9 @@ configure do
   use OmniAuth::Builder do
     provider :orcid, settings.orcid[:client_id], settings.orcid[:client_secret],
     :authorize_params => {
-      :scope => '/orcid-profile/read-limited /orcid-works/create'
+      # ToDo move the scope params to config file?
+      #:scope => '/orcid-profile/read-limited /orcid-bio/external-identifiers/create'
+      :scope => '/orcid-bio/external-identifiers/create'
     },
     :client_options => {
       :site => settings.orcid[:site],

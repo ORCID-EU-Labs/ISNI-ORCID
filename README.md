@@ -32,15 +32,16 @@ Here's how to quickly get up and running with a local virtual box using the prov
 
 ### Setting up and provisioning the virtual machine
 
-*[todo add brief note on where to get the `precise64` box to build
- from -  http://www.vagrantbox.es ]*
+*[todo add brief note on where to get the `precise64` box to build from -  http://www.vagrantbox.es ]*
 
 
     git clone https://github.com/ORCID-EU-Labs/isni2orcid.git
     cd isni2orcid
+	gem install librarian-chef
+    librarian-chef install 
     vagrant up
 
-If you don't see any errors from the last command, you now have a properly
+If you don't see any errors from the last two commands, you now have a properly
 configured Ubuntu virtual machine running the app. You can point your browser to `http://localhost:8088` and test-drive.
 
 

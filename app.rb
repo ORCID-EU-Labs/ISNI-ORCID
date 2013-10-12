@@ -10,8 +10,6 @@ require 'json'
 require 'mongo'
 require 'will_paginate'
 require 'cgi'
-require 'faraday'
-require 'faraday_middleware'
 # require 'gabba' uncomment to use Google Analytics
 require 'rack-session-mongo'
 require 'rack-flash'
@@ -48,7 +46,7 @@ require_relative 'lib/bootstrap'
 require_relative 'lib/session'
 require_relative 'lib/data'
 require_relative 'lib/orcid_update'
-#require_relative 'lib/orcid_claim' ## CHANGE to orcid_add_externalid or similar
+require_relative 'lib/orcid_claim' ## CHANGE to orcid_add_externalid or similar
 
 MIN_MATCH_SCORE = 2
 MIN_MATCH_TERMS = 3
@@ -72,17 +70,23 @@ get '/' do
     params['q'] = session[:orcid][:info][:name] if !params.has_key?('q')
 
     logger.debug "Initiating search with query string '#{params['q']}'"
+    results = search settings.server, params['q']
+    logger.debug "Full set of search results:\n" + results.ai
+    results_page = {
+      :bare_sort => params['sort'],
+      :bare_query => params['q'],
+    #  :query_type => query_type,
+      :bare_filter => params['filter'],
+      #:query => query_terms,
+      #:page => query_page,
+      :items => results,
+      #:paginate => Paginate.new(query_page, query_rows, solr_result)
+    }
 
-    # result = search_i
-    # ORG:     solr_result = select search_query
-    result = settings.provider.search
-    result = search settings.provider, params['q']
+    # format ISNI, cluster digits into fours separated by space
+    #   isni.gsub(/(\d{4})/, '\1 \2').gsub(/\s$/, '')
 
-    # set type of search (bio vs. works) in config file..?? 
-    
-    results_page = 
-
-    logger.debug "Got some search results"
+    logger.debug "Rendering search results"
     erb :results, :locals => {page: results_page}
   end
 end
@@ -103,54 +107,55 @@ end
 get '/orcid/claim' do ## RENAME route to /orcid/add_externalid or similar
   status = 'oauth_timeout'
 
+  # REFACTOR!! get most/all of this into its own module
 
-  # REFACTOR!! most/all of this into module
-
-  if signed_in? && params['doi']
-    doi = params['doi']
+  if signed_in? && params['id']
+    id = params['id']
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-    already_added = !orcid_record.nil? && orcid_record['locked_dois'].include?(doi)
+    already_added = !orcid_record.nil? && orcid_record['locked_ids'].include?(id)
 
-    logger.info "Initiating claim for #{doi}"
+    logger.info "Initiating claim for identifier #{id}"
    
     if already_added
-      logger.info "DOI #{doi} is already claimed, not doing anything!"
+      logger.info "ID #{id} is already claimed, not doing anything!"
       status = 'ok'
     else
-      logger.debug "Retrieving metadata from MongoDB for #{doi}"
-      doi_record = settings.dois.find_one({:doi => doi})
+      logger.debug "Retrieving metadata from MongoDB for #{id}"
+      bio_record = settings.bios.find_one({:id => id})
 
-      if !doi_record
-        status = 'no_such_doi'
+      if !bio_record
+        status = 'no_such_id'
+        logger.warn "No bio record found for #{id}"
       else       
-        logger.debug "Got some DOI metadata from MongoDB: " + doi_record.ai
+        logger.debug "Got some bio metadata from MongoDB: " + bio_record.ai
 
         claim_ok = false
         begin
-          claim_ok = OrcidClaim.perform(session_info, doi_record)          
+          claim_ok = OrcidClaim.perform(session_info, bio_record) 
         rescue => e
           # ToDo: need more useful error messaging here, for displaying to user
-          status = "could not claim work"
+          status = "could not claim"
           logger.error "Caught exception from claim process: #{e}: \n" + e.backtrace.join("\n")
         end
-        
+
+        # Update MongoDB record for this ORCID
         if claim_ok          
           if orcid_record
             orcid_record['updated'] = true
-            orcid_record['locked_dois'] << doi
-            orcid_record['locked_dois'].uniq!
+            orcid_record['locked_ids'] << id
+            orcid_record['locked_ids'].uniq!
             settings.orcids.save(orcid_record)
           else
-            doc = {:orcid => sign_in_id, :dois => [], :locked_dois => [doi]}
+            doc = {:orcid => sign_in_id, :ids => [], :locked_ids => [id]}
             settings.orcids.insert(doc)
           end
           
-          # The work could have been added as limited or public. If so we need
-          # to tell the UI.
+          # The ID could have been added as limited or public. If so we need
+          # to tell the UI.
           OrcidUpdate.perform(session_info)
           updated_orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
           
-          if updated_orcid_record['dois'].include?(doi)
+          if updated_orcid_record['ids'].include?(id)
             status = 'ok_visible'
           else
             status = 'ok'
@@ -165,14 +170,14 @@ get '/orcid/claim' do ## RENAME route to /orcid/add_externalid or similar
 end
 
 get '/orcid/unclaim' do
-  if signed_in? && params['doi']
-    doi = params['doi']
+  if signed_in? && params['id']
+    doi = params['id']
 
-    logger.info "Initiating unclaim for #{doi}"    
+    logger.info "Initiating unclaim for #{id}"    
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
 
     if orcid_record
-      orcid_record['locked_dois'].delete(doi)
+      orcid_record['locked_ids'].delete(id)
       settings.orcids.save(orcid_record)
     end
   end

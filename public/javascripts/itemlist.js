@@ -112,7 +112,7 @@ $(document).ready(function() {
   var performClaim = function($popover) {
     $.ajax({
         url: '/orcid/claim',
-        data: {doi: $popover.attr('id')},
+        data: {id: $popover.attr('id')},
         success: function(data) {
           if (data['status'] == 'ok' || data['status'] == 'ok_visible') {
             $popover.popover('destroy');
@@ -151,7 +151,7 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
     
-    var $p = $('<p>').text('Are you sure you want to add this work to your ORCID profile?');
+    var $p = $('<p>').text('Are you sure you want to add this identifier to your ORCID profile?');
     var $btnNo = $('<button>').addClass('btn').addClass('claim-no-btn').text('No');
     var $btnOk = $('<button>').addClass('btn').addClass('btn-success').addClass('claim-ok-btn').text('Yes');
     var $btns = $('<div>').addClass('btn-container').append($btnNo).append($btnOk);
@@ -161,7 +161,7 @@ $(document).ready(function() {
     $(this).popover({
       placement: 'bottom',
       html: true,
-      title: 'Add work to ORCID',
+      title: 'Add to ORCID',
       content: $('<div>').append($content).html(),
       trigger: 'manual'
     });
