@@ -1,0 +1,26 @@
+<div class="item-links-outer">
+  <div class="item-links">
+    <a href="http://isni.org/<%= item.id %>">
+      <i class="icon-external-link"></i>
+      <%= "http://isni.org/#{item.id}" %>
+    </a>
+    <% if signed_in? %>
+      <% if item.in_user_profile? %>
+        <span class="well-transparent claim-ok" id="<%= item.id %>">
+          <img src="/images/orcid_16x16.gif"/>
+          <span>In your profile</span>
+        </span>
+      <% elsif item.user_claimed? %>
+        <span class="well-transparent claim-warn" id="<%= item.id %>">
+          <img src="/images/orcid_16x16.gif"/>
+          <span>Not visible</span>
+        </span>
+      <% else %>
+        <span class="well-transparent claim-none" id="<%= item.id %>">
+          <img src="/images/orcid_16x16.gif"/>
+          <span>YES, this is me - add to ORCID</span>
+        </span>
+      <% end %>
+    <% end %>
+  </div>
+</div>

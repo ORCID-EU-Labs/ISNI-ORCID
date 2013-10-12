@@ -1,0 +1,32 @@
+
+<script src="/javascripts/itemlist.js" type="text/javascript"></script>
+<% page[:items].each do |item| %>
+
+<div class="item-data">
+    <p class="lead">
+     ISNI <%= item.id.gsub(/(\d{4})/, '\1 \2').gsub(/\s$/, '') %>
+    </p>
+    <p>
+Names associated with this identifier:
+    </p>
+    <p>
+      <ul>
+        <li><%= item.family_name %>, <%= item.given_names %></li>
+      <%  item.other_names.each do |n| %>
+        <li><%= n %></li>
+      <% end %>
+      </ul>
+    </p>
+  <%= partial :item_links, :locals => {item: item} %>
+</div>
+
+ <% end %>
+<script>
+  
+  function showCitationsBox(hashed) {
+    $('#citations-' + hashed).modal();
+  }
+
+
+
+</script>
