@@ -122,14 +122,15 @@ $(document).ready(function() {
             $popover.find('i').addClass('icon-circle');
 
             if (data['status'] == 'ok') {
-              $popover.addClass('claim-warn');
-              $popover.click(claimWarnClickFn);
-              $popover.find('span').text('Not visible');
-            } else {
               $popover.addClass('claim-ok');
               $popover.click(claimOkClickFn);
               $popover.find('span').text('In your profile');
+            } else {
+              $popover.addClass('claim-warn');
+              $popover.click(claimWarnClickFn);
+              $popover.find('span').text('ERROR in claiming');
             }
+              
           } else if (data['status'] == 'oauth_timeout') {
             replacePopoverWithLogin($popover);
           } else if (data['status'] == 'no_such_doi') {
@@ -200,7 +201,7 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
 
-    var $text = $('<div>').html('<span>Work has been added to your ORCID profile but is marked as private. Visit your <a href="https://orcid.org/my-orcid" target="_blank"><i class="icon-external-link"></i>ORCID profile</a> to set this work\'s visibility to public or limited.<br/><br/>If you have removed this private work from your ORCID profile you can click the button below to remove it from CrossRef Metadata Search.</span>');
+    var $text = $('<div>').html('<span>Identifier has been added to your ORCID profile.<br/><br/>If you have removed this private identifier from your ORCID profile you can click the button below to also remove it from this service.</span>');
     var $btnClose = $('<button>').addClass('btn').addClass('claim-close-btn').text('Close');
     var $btnRefresh = $('<button>').addClass('btn').addClass('btn-warning').addClass('claim-refresh-btn').text('Refresh');
     var $btnRemove = $('<button>').addClass('btn').addClass('btn-danger').addClass('claim-remove-btn').text('Remove');
@@ -211,7 +212,7 @@ $(document).ready(function() {
     $(this).popover({
       placement: 'bottom',
       html: true,
-      title: 'Work is private in your ORCID profile',
+      title: 'Identifier is private in your ORCID profile',
       content: $('<div>').append($content).html(),
       trigger: 'manual'
     });
@@ -246,7 +247,7 @@ $(document).ready(function() {
 
       $.ajax({
         url: '/orcid/unclaim',
-        data: {doi: $popover.attr('id')},
+        data: {id: $popover.attr('id')},
         success: function() {
           $popover.popover('destroy');
           $popover.removeClass('claim-warn');

@@ -171,7 +171,7 @@ end
 
 get '/orcid/unclaim' do
   if signed_in? && params['id']
-    doi = params['id']
+    id = params['id']
 
     logger.info "Initiating unclaim for #{id}"    
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
