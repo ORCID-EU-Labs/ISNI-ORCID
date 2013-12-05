@@ -11,7 +11,8 @@ module Session
   end
 
   def update_profile
-    logger.debug "retrieving ORCID profile for #{session[:orcid][:uid]}"
+    #logger.debug "retrieving ORCID profile for #{session[:orcid][:uid]}"
+    logger.debug "session: " + session.ai
     response = auth_token.get "/#{session[:orcid][:uid]}/orcid-profile", :headers => {'Accept' => 'application/json'}
     if response.status == 200
       json = JSON.parse(response.body)
@@ -19,7 +20,14 @@ module Session
       family_name = json['orcid-profile']['orcid-bio']['personal-details']['family-name']['value']
       other_names = json['orcid-profile']['orcid-bio']['personal-details']['other-names'].nil? ? nil : json['orcid-profile']['orcid-bio']['personal-details']['other-names']['other-name']
       session[:orcid][:info][:name] = "#{given_name} #{family_name}"
-      session[:orcid][:info][:other_names] = other_names.nil? ? nil : other_names.map { |other_name| other_name['value'] }
+      session[:orcid][:info][:other_names] = []
+      if !other_names.nil?
+        other_names.each do |other_name|
+          # ToDo: whenever ORCID fixes the other name handling so they're not bundled into one string, refactor the
+          # silly string-splitting here which shouldn't be needed
+          other_name['value'].split(/\s*,\s*/).each { |n| session[:orcid][:info][:other_names] << n}
+        end
+      end
       logger.info "Got updated profile data: " + session[:orcid].ai
     end
   end
