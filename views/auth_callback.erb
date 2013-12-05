@@ -1,4 +1,9 @@
 <script>  
   //oauthIframeCallback();
-  window.close();
+  if (window.name == "ConnectWithOAuth")  {
+      window.close();
+  } else {
+      window.location = "/"; 
+  }
+
 </script>
