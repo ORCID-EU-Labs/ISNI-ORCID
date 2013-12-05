@@ -29,9 +29,9 @@ class OrcidClaim
   def perform
     oauth_expired = false
 
-    logger.info "Performing claim with @oauth and @record:"
-    logger.debug {@oauth.ai}
-    logger.debug {@record.ai}
+    logger.info "Performing claim, associating ORCID  with external ID:"
+    logger.debug { "ORCID record:\n"   + @oauth.ai}
+    logger.debug { "External record:\n" + @record.ai}
 
     # ToDo: add check for type of claim (bio vs. work) and have 2x XML-generation methods
     logger.debug "XML for POSTing: " + to_xml
@@ -51,7 +51,7 @@ class OrcidClaim
       post.headers['Content-Type'] = 'application/orcid+xml'
       post.body = to_xml
     end
-    logger.debug "response obj=" + response.ai
+    #logger.debug "response obj=" + response.ai
     
     # Raise firm exception if we do NOT get an a-OK response back from the POST operation
     #if response.status == 201 

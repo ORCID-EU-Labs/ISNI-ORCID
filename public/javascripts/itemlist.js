@@ -162,7 +162,7 @@ $(document).ready(function() {
     $(this).popover({
       placement: 'bottom',
       html: true,
-      title: 'Add to ORCID',
+      title: 'YES, this is me - add to ORCID',
       content: $('<div>').append($content).html(),
       trigger: 'manual'
     });
@@ -254,7 +254,7 @@ $(document).ready(function() {
           $popover.addClass('claim-none');
           $popover.unbind('click');
           $popover.click(claimNoneClickFn);
-          $popover.find('span').text('Add to ORCID');
+          $popover.find('span').text('YES, this is me - add to ORCID');
           $popover.find('i').removeClass('icon-circle');
           $popover.find('i').addClass('icon-circle-blank');
         },

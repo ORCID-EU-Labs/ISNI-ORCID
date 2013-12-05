@@ -19,6 +19,7 @@
             <%#= "#{page[:paginate].total_rows} results - page #{page[:page]} of #{page[:paginate].total_pages}" %>
           </h6>
         </div>
+        <!--
         <span>
           <h6>
             Sort by:
@@ -31,6 +32,8 @@
             <% end %>
           </h6>
         </span>
+        -->
+        <!--
         <div class="pull-left">
           <h6>
             Filter:
@@ -49,6 +52,7 @@
             <% end %>
           </h6>
         </div>
+           -->
       </div>
       <%= partial :item_list, :locals => {page: page} %>
       <div class="item-paging bottom">

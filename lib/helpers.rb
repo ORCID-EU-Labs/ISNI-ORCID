@@ -19,7 +19,7 @@ helpers do
   end
 
   def search server, q
-    logger.debug "Building query from name variant string '#{q}'"
+    logger.debug "Building query from name variants '#{q.join(' | ')}'"
 
     # Load up profile info for the signed-in user
     claimed_ids = []
@@ -36,17 +36,16 @@ helpers do
 
     results = []
     build_query q do |params|
-      logger.info "Hitting the ISNI API with query string '#{q}'"
+      logger.info "Hitting the ISNI API with query string based on '#{q.join('|')}'"
       logger.debug "query params: " + params.ai
       res = server.get '/sru/DB=1.2/', params
       #logger.debug "Got response obj " + res.ai
-      logger.debug "Full response body: " + res.body
+      #logger.debug "Full response body: " + res.body
       parse_isni_response res.body do |isni, family_name, given_names, other_names|
 
         # Construct a result object for each ISNI record returned from the search
         # NB this first iteration is hardcoded to ingest ISNI records. Need to generalize this
-        # and possibly allow for subclasses/callbacks to handle other types of records.
-        
+        # and possibly allow for subclasses/callbacks to handle other types of records.        
         in_profile = profile_ids.include?(isni)
         claimed = claimed_ids.include?(isni)
       
@@ -71,7 +70,7 @@ helpers do
     
     records.each do |r|  
       rdata = r['recordData']['responseRecord']['ISNIAssigned']
-      logger.debug "full ISNI metadata record: " + rdata.ai
+      #logger.debug "full ISNI metadata record: " + rdata.ai
       isni     = rdata['isniUnformatted']
       isni_uri = rdata['isniURI']
       logger.debug "sources: " + rdata['ISNIMetadata']['sources'].ai
@@ -94,7 +93,7 @@ helpers do
         next if pname.nil?
         next if pname['surname'] == "" && pname['forename'] == ""
         pnamestring = (pname['surname']||"") + ", " + (pname['forename']||"")
-        logger.debug "  - adding pname: --#{pnamestring}--"
+        #logger.debug "  - adding pname: --#{pnamestring}--"
         namelist.push pnamestring
 
         # We'll arbitrarily grab the 1st name on the list and set as the "primary"        
@@ -164,19 +163,16 @@ helpers do
       'operation' => 'searchRetrieve',
       'recordSchema' => 'isni-b',
       # The query string itself which specific to each API request
-      'query' => names2qstring([q])
+      'query' => names2qstring(q)
     }
-
-
     
     puts "about to yield"
     yield query_params #, ctype
   end
-  
-
-  
+    
   # Prepare the list of names as an URI-escaped query string, just like ISNI wants it
   def names2qstring names
+    logger.debug "names for building query string from: \n" + names.ai
     names4query = []
     names.each do |n|
       logger.debug "  -Adding #{n} to name list"

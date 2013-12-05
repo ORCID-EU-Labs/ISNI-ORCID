@@ -63,19 +63,32 @@ end
 
 get '/' do
 
-  # If the user is signed in via ORCID, kick off a search. Otherwise show the splash page
+  # If the user is signed in via ORCID, kick off a search. Otherwise show the splash page.
   if !signed_in?
     erb :splash, :locals => {:page => {:query => ""}}
   else
-    params['q'] = session[:orcid][:info][:name] if !params.has_key?('q')
 
-    logger.debug "Initiating search with query string '#{params['q']}'"
-    results = search settings.server, params['q']
+    q = ""
+    if !params.has_key?('q') or params['q'] == ""  
+      # If user doesn't provide a query string, make one  based on names pulled from his profile      
+      logger.info "Building query parameters based on names from ORCID profile: \n" + session[:orcid][:info].ai
+      q = [session[:orcid][:info][:name]]
+      session[:orcid][:info][:other_names].each {|n| q.push n}
+      logger.debug "q array: " + q.ai
+    else
+      # Otherwise build a query string based on uber-simple boolean OR syntax
+      q = params['q'].split(/\s+or\s+/i).map{|n| n}
+    end
+    
+    logger.debug "Initiating search with query string based on: " +  q.join('  |  ')
+    results = search settings.server, q
     logger.debug "Full set of search results:\n" + results.ai
     results_page = {
       :bare_sort => params['sort'],
-      :bare_query => params['q'],
+      #:bare_query => params['q'],
+      :bare_query => q.join(" OR "),
     #  :query_type => query_type,
+      :query => q,
       :bare_filter => params['filter'],
       #:query => query_terms,
       #:page => query_page,
@@ -93,12 +106,14 @@ end
 
 
 get '/help/search' do
-  erb :search_help, :locals => {:page => {query: ''}}
+  page = {:query => ''}
+  erb :search_help, :locals => {page: page}
 end
 
 get '/orcid/activity' do
   if signed_in?
-    erb :activity, :locals => {:page => {:query => ''}}
+    page = {:query => ''}
+    erb :activity, :locals => {page: page}
   else
     redirect '/'
   end

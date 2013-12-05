@@ -1,6 +1,5 @@
-<%= partial :search_header, :page => page %>
-<css>
-  
+<%= partial :search_header, :locals => {page: page}  %>
+<style>  
   .well-transparent {
     background-color: transparent;
   }
@@ -11,7 +10,7 @@
   }
 
 
-</css>
+</style>
 <div class="row-fluid">
   <div class="span2"></div>
   <div class="span8">
@@ -32,7 +31,7 @@
     </div>
   </div>
 </div>
-<%= partial :search_footer, :page => page %>
+<%= partial :search_footer, :locals => {page: page} %>
 <script>
   
   $(document).ready(function() {

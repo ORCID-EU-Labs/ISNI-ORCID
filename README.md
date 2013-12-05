@@ -37,7 +37,7 @@ Here's how to quickly get up and running with a local virtual box using the prov
 
     git clone https://github.com/ORCID-EU-Labs/isni2orcid.git
     cd isni2orcid
-	gem install librarian-chef
+    gem install librarian-chef
     librarian-chef install 
     vagrant up
 
