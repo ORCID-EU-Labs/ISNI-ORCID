@@ -53,9 +53,10 @@ class OrcidUpdate
           logger.debug "Found existing ORCID record to update:" + orcid_record.ai
           logger.debug "Updating with external IDs: \n" + parsed_external_ids.ai
           orcid_record['ids'] = parsed_external_ids
+          orcid_record['locked_ids'] = parsed_external_ids
           MongoData.coll('orcids').save(orcid_record)
         else
-          doc = {:orcid => uid, :ids => parsed_dois, :locked_ids => []}
+          doc = {:orcid => uid, :ids => parsed_external_ids, :locked_ids => []}
           logger.debug "Creating new ORCID record: " + doc.ai
           MongoData.coll('orcids').insert(doc)
         end

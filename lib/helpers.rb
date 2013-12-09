@@ -27,13 +27,13 @@ helpers do
 
     if signed_in?
       orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-      unless orcid_record.nil?
-        logger.debug "Getting list of claimed IDs in ORCID record for signed-in user #{sign_in_id}"
+      unless orcid_record.nil? 
+        logger.debug "Getting list of claimed IDs in ORCID record for signed-in user #{sign_in_id}: \n" + orcid_record.ai
         if orcid_record
-          claimed_ids.push orcid_record['ids']
-          claimed_ids.push orcid_record['locked_ids'] 
+          claimed_ids =  orcid_record['ids'] +  orcid_record['locked_ids'] 
+          logger.info "Final list of claimed IDs:\n" + claimed_ids.ai
+          profile_ids = orcid_record['ids'] 
         end
-        profile_ids = orcid_record['ids']
       end
     end
 

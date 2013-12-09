@@ -127,7 +127,7 @@ get '/orcid/claim' do ## RENAME route to /orcid/add_externalid or similar
   if signed_in? && params['id']
     id = params['id']
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-    already_added = !orcid_record.nil? && orcid_record['locked_ids'].include?(id)
+    already_added = !orcid_record.nil? && orcid_record['ids'].include?(id)
 
     logger.info "Initiating claim for identifier #{id}"
    

@@ -70,7 +70,7 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
 
-    var $p = $('<p>').text('Last time we checked, this work was in your ORCID profile. Refresh to retrieve changes to your works from ORCID.');
+    var $p = $('<p>').text('Last time we checked, this identifier was in your ORCID profile. Refresh to retrieve changes to your works from ORCID.');
     var $btnClose = $('<button>').addClass('btn').addClass('claim-close-btn').text('Close');
     var $btnRefresh = $('<button>').addClass('btn').addClass('btn-warning').addClass('claim-refresh-btn').text('Refresh');
     var $btns = $('<div>').addClass('btn-container').append($btnClose).append($btnRefresh);
@@ -124,7 +124,7 @@ $(document).ready(function() {
             if (data['status'] == 'ok') {
               $popover.addClass('claim-ok');
               $popover.click(claimOkClickFn);
-              $popover.find('span').text('In your profile');
+              $popover.find('span').text('In your ORCID profile');
             } else {
               $popover.addClass('claim-warn');
               $popover.click(claimWarnClickFn);
