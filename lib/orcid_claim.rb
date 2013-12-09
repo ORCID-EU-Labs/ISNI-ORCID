@@ -47,14 +47,13 @@ class OrcidClaim
     client = OAuth2::Client.new( @conf['orcid']['client_id'],  @conf['orcid']['client_secret'], opts)
     token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
     headers = {'Accept' => 'application/json'}
-    response = token.post("/#{uid}/orcid-bio/external-identifiers") do |post|
+    response = token.post("/v1.1/#{uid}/orcid-bio/external-identifiers") do |post|
       post.headers['Content-Type'] = 'application/orcid+xml'
       post.body = to_xml
     end
     #logger.debug "response obj=" + response.ai
     
     # Raise firm exception if we do NOT get an a-OK response back from the POST operation
-    #if response.status == 201 
     if response.status == 200
       return response.status
     else
@@ -218,14 +217,14 @@ class OrcidClaim
   def to_xml
     root_attributes = {
       :'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
-      :'xsi:schemaLocation' => 'http://www.orcid.org/ns/orcid http://orcid.github.com/ORCID-Parent/schemas/orcid-message/1.0.8/orcid-message-1.0.8.xsd',
+      :'xsi:schemaLocation' => 'http://www.orcid.org/ns/orcid http://orcid.github.com/ORCID-Parent/schemas/orcid-message/1.1/orcid-message-1.1.xsd',
       :'xmlns' => 'http://www.orcid.org/ns/orcid'
     }
 
 
     builder = Nokogiri::XML::Builder.new do |xml|
       xml.send(:'orcid-message', root_attributes) {
-        xml.send(:'message-version', '1.0.8')
+        xml.send(:'message-version', '1.1')
         xml.send(:'orcid-profile') {
           xml.send(:'orcid-bio') {
             xml.send(:'external-identifiers') {

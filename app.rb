@@ -225,15 +225,6 @@ get '/auth/orcid/callback' do
   erb :auth_callback
 end
 
-get '/auth/orcid/import' do
-  session[:orcid] = request.env['omniauth.auth']
-  Resque.enqueue(OrcidUpdate, session_info)
-  logger.info "Signing in via ORCID"
-  logger.debug "got session info:\n" + session.ai
-  update_profile
-  redirect to("/?q=#{session[:orcid][:info][:name]}")
-end
-
 get '/auth/orcid/check' do
 
 end

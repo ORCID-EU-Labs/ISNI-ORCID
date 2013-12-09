@@ -36,25 +36,26 @@ class OrcidUpdate
       #token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
       headers = {'Accept' => 'application/json'}
       logger.info "GETing profile info via ORCID API for #{uid}"
-      response = Faraday.get "http://pub.sandbox-1.orcid.org/" + uid, {}, headers
+      response = Faraday.get "http://pub.sandbox-1.orcid.org/v1.1/" + uid, {}, headers
 
       # response = token.get "/#{uid}/orcid-profile", {:headers => headers}
 
       if response.status == 200
         response_json = JSON.parse(response.body)
-        logger.debug "Parsed JSON response: " + response_json.ai
+        logger.debug "Got response JSON from ORCID:\n" + response_json.ai
 
-        # ToDo!! need 2x calls here, one to get the works IDs as before and another for the external IDs
-        parsed_dois = parse_dois(response_json)
+        # ToDo!! for later, need 2x calls here, one to get the works IDs as before and another for the external IDs
+        parsed_external_ids = parse_external_ids(response_json)
         query = {:orcid => uid}
         orcid_record = MongoData.coll('orcids').find_one(query)
 
         if orcid_record
           logger.debug "Found existing ORCID record to update:" + orcid_record.ai
-          orcid_record['dois'] = parsed_dois
+          logger.debug "Updating with external IDs: \n" + parsed_external_ids.ai
+          orcid_record['ids'] = parsed_external_ids
           MongoData.coll('orcids').save(orcid_record)
         else
-          doc = {:orcid => uid, :dois => parsed_dois, :locked_dois => []}
+          doc = {:orcid => uid, :ids => parsed_dois, :locked_ids => []}
           logger.debug "Creating new ORCID record: " + doc.ai
           MongoData.coll('orcids').insert(doc)
         end
@@ -62,7 +63,7 @@ class OrcidUpdate
         oauth_expired = true
       end
     rescue StandardError => e
-      logger.debug "An error occured: #{e}"
+      logger.debug "An error occured: #{e}:\n" + e.ai
     end
 
     !oauth_expired
@@ -81,31 +82,18 @@ class OrcidUpdate
     loc != nil
   end
 
-  def parse_dois json
-    if !has_path?(json, ['orcid-profile', 'orcid-activities'])
-      []
+  def parse_external_ids json
+    logger.debug "Checking if JSON includes any external ID info"
+    if !has_path?(json, ['orcid-profile', 'orcid-bio', 'external-identifiers'])
+      logger.info "No external IDs for ORCID"
+      return []
     else
-      works = json['orcid-profile']['orcid-activities']['orcid-works']['orcid-work']
-
-      extracted_dois = works.map do |work_loc|
-        doi = nil
-        if has_path?(work_loc, ['work-external-identifiers', 'work-external-identifier'])
-          ids_loc = work_loc['work-external-identifiers']['work-external-identifier']
-
-          ids_loc.each do |id_loc|
-            id_type = id_loc['work-external-identifier-type']
-            id_val = id_loc['work-external-identifier-id']['value']
-
-            if id_type.upcase == 'DOI'
-              doi = id_val
-            end
-          end
-
-        end
-        doi
+      ids = json['orcid-profile']['orcid-bio']['external-identifiers']['external-identifier']
+      
+      extracted_ids = ids.map do |id|
+        id['external-id-reference']['value']
       end
-
-      extracted_dois.compact
+      return extracted_ids.compact
     end
   end
   

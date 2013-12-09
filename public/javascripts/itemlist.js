@@ -80,7 +80,7 @@ $(document).ready(function() {
     $(this).popover({
       placement: 'bottom',
       html: true,
-      title: 'Work is in your ORCID profile',
+      title: 'Identifier is in your ORCID profile',
       content: $('<div>').append($content).html(),
       trigger: 'manual'
     });
