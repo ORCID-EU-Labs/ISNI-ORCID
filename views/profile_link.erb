@@ -7,7 +7,7 @@
     </a>
     <ul class="dropdown-menu" role="menu" style="right: 0; left: auto;">
       <li>
-        <a href="<%= @conf['orcid']['site'] %>/<%= session[:orcid][:uid] %>" target="_blank">
+        <a href="<%= @conf['orcid']['site'].gsub('http://api.','http://') %>/<%= session[:orcid][:uid] %>" target="_blank">
           <i class="icon-external-link"></i>
           My ORCID: <%= session[:orcid][:uid] %>
         </a>
