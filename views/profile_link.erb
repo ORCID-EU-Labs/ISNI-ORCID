@@ -12,6 +12,12 @@
           My ORCID: <%= session[:orcid][:uid] %>
         </a>
       </li>
+      <li>
+         <a href='/orcid/activity'>
+         <i class='icon-th-list'></i>
+          Settings
+         </a>
+       </li>
       <li class="divider"></li>
       <li>
         <a href="/auth/signout?redirect_uri=<%= URI.encode(request.fullpath) %>">
