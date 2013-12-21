@@ -11,8 +11,12 @@
     <% end %>
 
     <%# unless page[:page].nil? || page[:paginate].nil? || params['q']   == "" %>
-    <% if 1 %>
-      <%= partial :search_box, :locals => {page: page} %>
+    <%= partial :search_box, :locals => {page: page} %>
+    <% if page[:items].size == 0 %>
+      <div class="alert">
+        Nothing found
+      </div>
+    <% else %>
       <div class="list-info">
         <div class="pull-right">
           <h6 class="number">
@@ -58,11 +62,6 @@
       <div class="item-paging bottom">
         <%# will_paginate page[:paginate], :renderer => BootstrapLinkRenderer, :inner_window => 2 %>
       </div>
-    <% else %>
-      <h2>
-        Example Queries
-      </h2>
-      <%= partial :help_list, :page => page %>
     <% end %>
   </div>
 </div>
