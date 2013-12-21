@@ -60,8 +60,7 @@ configure do
     provider :orcid, settings.orcid[:client_id], settings.orcid[:client_secret],
     :authorize_params => {
       # ToDo move the scope params to config file?
-      #:scope => '/orcid-profile/read-limited /orcid-bio/external-identifiers/create'
-      :scope => '/orcid-bio/external-identifiers/create'
+      :scope => '/orcid-profile/read-limited /orcid-bio/external-identifiers/create'
     },
     :client_options => {
       :site => settings.orcid[:site],

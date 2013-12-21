@@ -181,13 +181,11 @@ helpers do
     names4query = []
     names.each do |n|
       logger.debug "  -Adding #{n} to name list"
-      #names4query.push 'pica.nw=' + URI.escape('"' + n + '"') 
-      names4query.push 'pica.nw=' + '"' + n + '"'
+      names4query.push 'pica.na=' + '"' + n + '"'
     end
     qstring = names4query.join " OR "
     logger.debug "Final query string:" + qstring     
     return qstring
-    #example: 'pica.nw="thorisson, hermann" OR pica.nw="jones"';
   end
   
 
