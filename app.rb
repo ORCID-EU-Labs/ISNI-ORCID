@@ -8,7 +8,8 @@ require 'sinatra/config_file'
 require 'sinatra/partial'
 require 'json'
 require 'mongo'
-require 'will_paginate'
+require 'will_paginate/collection'
+require "will_paginate-bootstrap"
 require 'cgi'
 # require 'gabba' uncomment to use Google Analytics
 require 'rack-session-mongo'
@@ -18,6 +19,7 @@ require 'oauth2'
 require 'resque'
 require 'open-uri'
 require 'uri'
+
 
 # Set up logging
 require 'log4r'
@@ -40,8 +42,6 @@ config_file 'config/settings.yml'
 
 require_relative 'lib/configure'
 require_relative 'lib/helpers'
-#require_relative 'lib/paginate'
-#require_relative 'lib/result' ## CHANGE to search_result or similar
 require_relative 'lib/bootstrap'
 require_relative 'lib/session'
 require_relative 'lib/data'
@@ -79,25 +79,32 @@ get '/' do
       # Otherwise build a query string based on uber-simple boolean OR syntax
       q = params['q'].split(/\s+or\s+/i).map{|n| n}
     end
-    
+
+    page = query_page
+    items = query_items
     logger.debug "Initiating search with query string based on: " +  q.join('  |  ')
+    logger.debug "Requesting paged results: page #{page} w/ max #{items} per page"
+
     results = search settings.server, q
     logger.debug "Full set of search results:\n" + results.ai
+
+    # Set up a paged collection representing the set of search results
+    items = WillPaginate::Collection.create(page, items, 9999) do |pager|      
+      pager.replace(results)
+    end
+
+    logger.debug "will_paginate?? " + will_paginate(items)
+
     results_page = {
       :bare_sort => params['sort'],
-      #:bare_query => params['q'],
       :bare_query => q.join(" OR "),
     #  :query_type => query_type,
       :query => q,
       :bare_filter => params['filter'],
       #:query => query_terms,
-      #:page => query_page,
-      :items => results,
-      #:paginate => Paginate.new(query_page, query_rows, solr_result)
+      :page => page,
+      :items => items
     }
-
-    # format ISNI, cluster digits into fours separated by space
-    #   isni.gsub(/(\d{4})/, '\1 \2').gsub(/\s$/, '')
 
     logger.debug "Rendering search results"
     erb :results, :locals => {page: results_page}
@@ -119,7 +126,7 @@ get '/orcid/activity' do
   end
 end
 
-get '/orcid/claim' do ## RENAME route to /orcid/add_externalid or similar
+get '/orcid/claim' do
   status = 'oauth_timeout'
 
   # REFACTOR!! get most/all of this into its own module

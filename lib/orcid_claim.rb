@@ -210,7 +210,7 @@ class OrcidClaim
   end
 
   def insert_extid_url xml
-    xml.send(:'external-id-url', "http://isni.org/" + @record['id'])
+    xml.send(:'external-id-url', @record['uri'])
   end
 
 

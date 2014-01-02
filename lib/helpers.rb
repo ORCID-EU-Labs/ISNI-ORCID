@@ -3,7 +3,11 @@
 require_relative 'session'
 require_relative 'result'
 
+require 'will_paginate'
+require 'will_paginate/view_helpers/sinatra'
 require 'log4r'
+
+helpers WillPaginate::Sinatra::Helpers
 
 helpers do
   include Session
@@ -42,11 +46,17 @@ helpers do
     results = []
     build_query q do |params|
       logger.info "Hitting the ISNI API with query string based on '#{q.join('|')}'"
+
+      # To page results, provide max no records and start record params too
+      params['maximumRecords'] = query_items
+      params['startRecord'] = (query_items * (query_page - 1)) + 1
       logger.debug "query params: " + params.ai
+
       res = server.get '/sru/DB=1.2/', params
-      #logger.debug "Got response obj " + res.ai
-      #logger.debug "Full response body: " + res.body
-      parse_isni_response res.body do |isni, family_name, given_names, other_names|
+
+      # ?? get total hits found, taka numberOfRecords undir 'entire parsed response' að neðan
+
+      parse_isni_response res.body do |isni, uri, family_name, given_names, other_names|
 
         # Construct a result object for each ISNI record returned from the search
         # NB this first iteration is hardcoded to ingest ISNI records. Need to generalize this
@@ -54,8 +64,9 @@ helpers do
         in_profile = profile_ids.include?(isni)
         claimed = claimed_ids.include?(isni)
       
-        user_state = {:in_profile => in_profile, :claimed => claimed}      
-        result = SearchResult.new :id => isni, :family_name => family_name, :given_names => given_names, 
+        user_state = {:in_profile => in_profile, :claimed => claimed}
+
+        result = SearchResult.new :id => isni, :uri => uri, :family_name => family_name, :given_names => given_names,
                                   :other_names => other_names, :user_state => user_state
         logger.debug "created result obj: " + result.ai
         results.push result
@@ -69,6 +80,7 @@ helpers do
     
     results = []
     parsed_response = MultiXml.parse(res_body)['searchRetrieveResponse']
+    logger.debug "Entire parsed response from ISNI: \n" + parsed_response.ai
     return unless parsed_response['records']
     records = parsed_response['records']['record']
     records = [records] if !records.kind_of? Array
@@ -126,7 +138,7 @@ helpers do
       namelist.shift
 
       # Execute the block passed in by the caller
-      yield isni, family_name, given_names, namelist
+      yield isni, isni_uri, family_name, given_names, namelist
 
       # ToDo later: deal with the works in the ISNI profile      
       #puts "Associated works:"
@@ -156,6 +168,15 @@ helpers do
     end
   end
 
+  def query_items
+    if params.has_key? 'items'
+      params['items'].to_i
+    else
+      settings.default_items
+    end
+  end
+
+
   # Set up the request to send to the ISNI API
   def build_query q, &block
     
@@ -169,10 +190,8 @@ helpers do
       'recordSchema' => 'isni-b',
       # The query string itself which specific to each API request
       'query' => names2qstring(q)
-    }
-    
-    puts "about to yield"
-    yield query_params #, ctype
+    }    
+    yield query_params
   end
     
   # Prepare the list of names as an URI-escaped query string, just like ISNI wants it
@@ -188,41 +207,12 @@ helpers do
     return qstring
   end
   
-
-
   def sort_term
     if 'publicationYear' == params['sort']
       'publicationYear desc, score desc'
     else
       'score desc'
     end
-  end
-
-
-
-
-
-  def search_query
-    fq = facet_query
-    query  = {
-      :sort => sort_term,
-      :q => query_terms,
-      :fl => query_columns,
-      :rows => query_rows,
-      :facet => settings.facet ? 'true' : 'false',
-      'facet.field' => settings.facet_fields, 
-      'facet.mincount' => 1,
-      :hl => settings.highlighting ? 'true' : 'false',
-      'hl.fl' => 'hl_*',
-      'hl.simple.pre' => '<span class="hl">',
-      'hl.simple.post' => '</span>',
-      'hl.mergeContinuous' => 'true',
-      'hl.snippets' => 10,
-      'hl.fragsize' => 0
-    }
-
-    query['fq'] = fq unless fq.empty?
-    query
   end
 
   def facet_link_not field_name, field_value
@@ -254,7 +244,6 @@ helpers do
   end
 
 
-  # Modify to work with claimed profiles, rather than claimed works/DOIs
   def search_results solr_result, oauth = nil
     claimed_dois = []
     profile_dois = []

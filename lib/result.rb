@@ -9,7 +9,7 @@ require 'log4r'
 
 class SearchResult
 
-  PROPERTIES = [ :id, :given_names, :family_name, :other_names ]
+  PROPERTIES = [ :id, :uri, :given_names, :family_name, :other_names ]
   attr_accessor *PROPERTIES
 
   def initialize args
@@ -17,6 +17,7 @@ class SearchResult
     logger.debug "args: " + args.ai
 
     @id              = args[:id]
+    @uri             = args[:uri]
     @given_names     = args[:given_names]
     @family_name     = args[:family_name]
     @other_names     = args[:other_names]
@@ -27,6 +28,7 @@ class SearchResult
     # Insert/update record in MongoDB
     logger.info "storing #{@id} in mongo collection 'bios'"
     MongoData.coll('bios').update({ id: @id }, {id: @id,
+                                                uri: @uri,
                                                 given_names: @given_names,
                                                 family_name: @family_name,
                                                 other_names: @other_names},
