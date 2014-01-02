@@ -1,4 +1,4 @@
-<div class="row-fluid">
+<div class="row-fluid clearfix">
   <% if page[:mini_header] %>
     <div class="span-header">
       <div class="pull-right">
@@ -14,12 +14,12 @@
       </div>
     </div>
   <% else %>
-    <div class="span-header span3">
+    <div class="span-header col-md-3">
       <a class="home-link" href="/">
         <img src="/images/logo.png"/>
       </a>
     </div>
-    <div class="span-header span9 search-header">
+    <div class="span-header col-md-9 search-header">
       <div class="pull-right">
         <div class="simple-nav-outer">
           <div class="simple-nav smaller">
@@ -32,7 +32,7 @@
       <% if signed_in? %>
         <form action="/" method="GET">
           <div class="search-in-header">
-            <input class="input input-xlarge search-input" name="q" placeholder="Search" style="width: 22em; padding-left: 2em;" type="text" value="<%= page[:bare_query] %>"></input>
+            <input class="input form-control input-lg search-input" name="q" placeholder="Search" type="text" value="<%= page[:bare_query] %>"></input>
             <i class="icon-search"></i>
           </div>
         </form>

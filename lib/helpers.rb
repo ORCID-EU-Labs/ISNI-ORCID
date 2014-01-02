@@ -54,8 +54,6 @@ helpers do
 
       res = server.get '/sru/DB=1.2/', params
 
-      # ?? get total hits found, taka numberOfRecords undir 'entire parsed response' að neðan
-
       parse_isni_response res.body do |isni, uri, family_name, given_names, other_names|
 
         # Construct a result object for each ISNI record returned from the search
@@ -82,6 +80,7 @@ helpers do
     parsed_response = MultiXml.parse(res_body)['searchRetrieveResponse']
     logger.debug "Entire parsed response from ISNI: \n" + parsed_response.ai
     return unless parsed_response['records']
+    @total_items = parsed_response['numberOfRecords'].to_i
     records = parsed_response['records']['record']
     records = [records] if !records.kind_of? Array
     

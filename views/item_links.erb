@@ -2,7 +2,7 @@
   <div class="item-links">
     <a href="http://isni.org/<%= item.id %>">
       <i class="icon-external-link"></i>
-      <%= "http://isni.org/#{item.id}" %>
+      <%= item.uri %>
     </a>
     <% if signed_in? %>
       <% if item.in_user_profile? %>

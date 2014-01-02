@@ -80,28 +80,27 @@ get '/' do
       q = params['q'].split(/\s+or\s+/i).map{|n| n}
     end
 
-    page = query_page
-    items = query_items
-    logger.debug "Initiating search with query string based on: " +  q.join('  |  ')
-    logger.debug "Requesting paged results: page #{page} w/ max #{items} per page"
+    page           = query_page
+    items_per_page = query_items
 
+    @total_items = 0 # this gets populated in the search() helper method, IF search picks up one or more records
     results = search settings.server, q
-    logger.debug "Full set of search results:\n" + results.ai
-
-    # Set up a paged collection representing the set of search results
-    items = WillPaginate::Collection.create(page, items, 9999) do |pager|      
-      pager.replace(results)
+    if @total_items > 0
+      logger.debug "Full set of total @{total_items} search results:\n" + results.ai
+    elsif
+      logger.debug "Nothing found"
     end
 
-    logger.debug "will_paginate?? " + will_paginate(items)
+    # Set up a paged collection representing the set of search results
+    items = WillPaginate::Collection.create(page, items_per_page, @total_items) do |pager|      
+      pager.replace(results)
+    end
 
     results_page = {
       :bare_sort => params['sort'],
       :bare_query => q.join(" OR "),
-    #  :query_type => query_type,
       :query => q,
       :bare_filter => params['filter'],
-      #:query => query_terms,
       :page => page,
       :items => items
     }

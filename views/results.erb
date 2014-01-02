@@ -2,8 +2,8 @@
 <%= partial :search_header, :locals => {page:  page} %>
 
 <div class="row-fluid">
-  <div class="span3"></div>
-  <div class="span9">
+  <div class="col-md-3"></div>
+  <div class="col-md-9">
     <% unless flash[:error].nil? %>
       <div class="alert alert-error">
         <%= flash[:error] %>
@@ -15,52 +15,31 @@
     <% if page[:items].size == 0 %>
       <div class="alert">
         Nothing found
+
+      <br /> ----- TODO: add notes on how to refine search ----<br/>
       </div>
+
     <% else %>
-      <div class="list-info">
-        <div class="pull-right">
-          <h6 class="number">
-            <%#= "#{page[:paginate].total_rows} results - page #{page[:page]} of #{page[:paginate].total_pages}" %>
-          </h6>
-        </div>
-        <!--
-        <span>
-          <h6>
-            Sort by:
-            <% if page[:bare_sort] == 'publicationYear' %>
-              <a href="<%= search_link({:sort => 'score'}) %>">relevance</a>
-              <b>publication year</b>
+        <div>
+          <h5 style="text-transform: uppercase;">
+            Displaying <%= page[:items].offset+1 %> -
+            <%  if page[:items].next_page.nil? %>
+               <%= page[:items].total_entries %>
             <% else %>
-              <b>relevance</b>
-              <a href="<%= search_link({:sort => 'publicationYear'}) %>">publication year</a>
+                <%= page[:items].offset + page[:items].per_page %>
             <% end %>
-          </h6>
-        </span>
-        -->
-        <!--
-        <div class="pull-left">
-          <h6>
-            Filter:
-            <% if page[:filter] == 'showUnclaimed' %>
-              <a href="<%= search_link({:filter => 'showAll'}) %>">all</a>
-              <b>only unclaimed by me</b>
-              <a href="<%= search_link({:filter => 'showClaimed'}) %>">only claimed by me</a>
-            <% elsif page[:filter] == 'showClaimed' %>
-              <a href="<%= search_link({:filter => 'showAll'}) %>">all</a>
-              <a href="<%= search_link({:filter => 'showUnclaimed'}) %>">only claimed by me</a>
-              <b>only claimed by me</b>
-            <% else %>
-              <b>all</b>
-              <a href="<%= search_link({:filter => 'showUnclaimed'}) %>">only unclaimed by me</a>
-              <a href="<%= search_link({:filter => 'showClaimed'}) %>">only claimed by me</a>
-            <% end %>
-          </h6>
+            of <%= page[:items].total_entries %> entries
+          </h5>
         </div>
-           -->
+
+      <div class="item-paging">
+        <%= will_paginate page[:items], :renderer => BootstrapPagination::Sinatra %>
       </div>
+
       <%= partial :item_list, :locals => {page: page} %>
+
       <div class="item-paging bottom">
-        <%# will_paginate page[:paginate], :renderer => BootstrapLinkRenderer, :inner_window => 2 %>
+        <%= will_paginate page[:items], :renderer => BootstrapPagination::Sinatra %>
       </div>
     <% end %>
   </div>
