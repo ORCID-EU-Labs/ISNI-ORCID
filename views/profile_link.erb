@@ -1,17 +1,16 @@
 <% if signed_in?   %>
   <div class="dropdown">
-    <img src="/images/orcid_24x24.gif"/>
+    <img style="margin-left: 5px;" src="/images/orcid_32x32.gif"/>
+    <a href="<%= @conf['orcid']['site'].gsub('http://api.','http://') %>/<%= session[:orcid][:uid] %>" target="_blank">
+      <%= session[:orcid][:uid] %>
+    </a>
+|
+    <i class="icon-user"></i>
     <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button">
       <%= user_display %>
       <b class="caret"></b>
     </a>
     <ul class="dropdown-menu" role="menu" style="right: 0; left: auto;">
-      <li>
-        <a href="<%= @conf['orcid']['site'].gsub('http://api.','http://') %>/<%= session[:orcid][:uid] %>" target="_blank">
-          <i class="icon-external-link"></i>
-          My ORCID: <%= session[:orcid][:uid] %>
-        </a>
-      </li>
       <li>
          <a href='/orcid/activity'>
          <i class='icon-th-list'></i>
@@ -29,7 +28,7 @@
   </div>
 <% else %>
   <a class="sign-in-link" href="#">
-    <img src="/images/orcid_24x24.gif"/>
+    <img src="/images/orcid_32x32.gif"/>
     Sign in with ORCID
   </a>
   <script>
