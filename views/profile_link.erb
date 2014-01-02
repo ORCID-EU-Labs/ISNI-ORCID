@@ -1,11 +1,13 @@
 <% if signed_in?   %>
-  <div class="dropdown">
-    <img style="margin-left: 5px;" src="/images/orcid_32x32.gif"/>
-    <a href="<%= @conf['orcid']['site'].gsub('http://api.','http://') %>/<%= session[:orcid][:uid] %>" target="_blank">
+  <div>
+    <img style="margin-left: 5px;" src="/images/orcid_32x32.gif" alt="" />
+    <a href="<%= @conf['orcid']['site'].gsub('http://api.','http://')
+	     %>/<%= session[:orcid][:uid] %>" target="_blank" style=" font-size: 120%; font-weight: bold;">
       <%= session[:orcid][:uid] %>
     </a>
-|
-    <i class="icon-user"></i>
+    <br />
+    <div class="dropdown pull-right">
+    <i class="icon-user" style="font-size: 120%"></i>
     <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button">
       <%= user_display %>
       <b class="caret"></b>
@@ -26,9 +28,10 @@
       </li>
     </ul>
   </div>
+</div>
 <% else %>
   <a class="sign-in-link" href="#">
-    <img src="/images/orcid_32x32.gif"/>
+    <img src="/images/orcid_32x32.gif" alt="" />
     Sign in with ORCID
   </a>
   <script>

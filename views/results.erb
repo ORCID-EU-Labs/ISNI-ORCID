@@ -1,7 +1,7 @@
 
 <%= partial :search_header, :locals => {page:  page} %>
 
-<div class="row-fluid">
+<div class="row">
   <div class="col-md-3"></div>
   <div class="col-md-9">
     <% unless flash[:error].nil? %>
@@ -13,13 +13,37 @@
     <%# unless page[:page].nil? || page[:paginate].nil? || params['q']   == "" %>
     <%= partial :search_box, :locals => {page: page} %>
     <% if page[:items].size == 0 %>
-      <div class="alert">
-        Nothing found
+      <div class="alert alert-warning">
+      <h4> Nothing found!!</h4>
 
-      <br /> ----- TODO: add notes on how to refine search ----<br/>
-      </div>
+        <p>Try refining your search by using different and/or more specific variations of your
+               name. Example: <a href="/?q=Locke%2C+John"><em>Locke, John</em></a>
+              instead  of <a href="/?q=Locke%2C+j"><em>Locke, J</em></a>.
+        </p>
+    </div>
+
+    <h4>Search tips</h4>
+    <%= partial :search_tips %>
 
     <% else %>
+
+  <div class="panel-group" id="searchtips">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#searchtips" href="#collapseSearchtips">
+          Search tips
+        </a>
+      </h4>
+    </div>
+    <div id="collapseSearchtips" class="panel-collapse collapse">
+      <div class="panel-body">
+    <%= partial :search_tips %>
+      </div>
+    </div>
+    </div>
+
+
         <div>
           <h5 style="text-transform: uppercase;">
             Displaying <%= page[:items].offset+1 %> -
@@ -39,9 +63,12 @@
       <%= partial :item_list, :locals => {page: page} %>
 
       <div class="item-paging bottom">
+
         <%= will_paginate page[:items], :renderer => BootstrapPagination::Sinatra %>
+
       </div>
     <% end %>
-  </div>
+    </div>
+  </div>  
 </div>
 <%= partial :search_footer, :page => page %>

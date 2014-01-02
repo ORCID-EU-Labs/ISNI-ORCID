@@ -1,5 +1,14 @@
   <div class="alert alert-info">
+<p>
+<% if !params.has_key?('q') or params['q'] == "" %>
+Auto-searching with names found in ORCID profile. <br />
+<% end %>
+
       Showing results for names matching
     <b><%=  page[:query].join(" OR ") %></b>
+</p>
+
+
+
   </div>
 

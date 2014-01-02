@@ -395,7 +395,7 @@ p, span, h2 {
   width: 22em;
 }
 a.home-link img {
-  width: 331px;
+  width: 210px;
 }
 .span-header {
   margin-top: 1.2em;
@@ -444,4 +444,14 @@ a.home-link img {
   padding-left: 0.75em;
   padding-right: 0.75em;
   white-space: nowrap;
+}
+
+.well-transparent {
+  background-color: transparent;
+}
+
+#sync-ok {
+  color: rgb(166, 206, 57);
+  font-size: 1.4em;
+  display: none;
 }
