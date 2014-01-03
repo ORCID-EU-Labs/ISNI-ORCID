@@ -34,15 +34,18 @@ class OrcidUpdate
       #opts = {:site => @conf['orcid']['site']}
       #client = OAuth2::Client.new(@conf['orcid']['client_id'], @conf['orcid']['client_secret'], opts)
       #token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
-      headers = {'Accept' => 'application/json'}
-      logger.info "GETing profile info via ORCID API for #{uid}"
-      response = Faraday.get "http://pub.sandbox-1.orcid.org/v1.1/" + uid, {}, headers
 
-      # response = token.get "/#{uid}/orcid-profile", {:headers => headers}
+      opts = {:site => @conf['orcid']['site']}
+      logger.info "Connecting to ORCID OAuth API at site #{opts[:site]} to get profile data for #{uid}"
+      client = OAuth2::Client.new( @conf['orcid']['client_id'],  @conf['orcid']['client_secret'], opts)
+      token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
+      headers = {'Accept' => 'application/json'}
+      response = token.get "/v1.1/#{uid}/orcid-profile", {:headers => headers}
+      #response = Faraday.get "http://pub.sandbox-1.orcid.org/v1.1/" + uid, {}, headers
 
       if response.status == 200
         response_json = JSON.parse(response.body)
-        logger.debug "Got response JSON from ORCID:\n" + response_json.ai
+        # logger.debug "Got response JSON from ORCID:\n" + response_json.ai
 
         # ToDo!! for later, need 2x calls here, one to get the works IDs as before and another for the external IDs
         parsed_external_ids = parse_external_ids(response_json)

@@ -78,7 +78,7 @@ helpers do
     
     results = []
     parsed_response = MultiXml.parse(res_body)['searchRetrieveResponse']
-    logger.debug "Entire parsed response from ISNI: \n" + parsed_response.ai
+    #logger.debug "Entire parsed response from ISNI: \n" + parsed_response.ai
     return unless parsed_response['records']
     @total_items = parsed_response['numberOfRecords'].to_i
     records = parsed_response['records']['record']

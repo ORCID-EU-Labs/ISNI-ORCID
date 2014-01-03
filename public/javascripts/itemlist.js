@@ -121,15 +121,25 @@ $(document).ready(function() {
             $popover.find('i').removeClass('icon-circle-blank');
             $popover.find('i').addClass('icon-circle');
 
-            if (data['status'] == 'ok') {
-              $popover.addClass('claim-ok');
-              $popover.click(claimOkClickFn);
-              $popover.find('span').text('In your ORCID profile');
-            } else {
-              $popover.addClass('claim-warn');
-              $popover.click(claimWarnClickFn);
-              $popover.find('span').text('ERROR in claiming');
-            }
+            // if (data['status'] == 'ok') {
+            //   $popover.addClass('claim-ok');
+            //   $popover.click(claimOkClickFn);
+            //   $popover.find('span').text('In your ORCID profile');
+            // } else {
+            //   $popover.addClass('claim-warn');
+            //   $popover.click(claimWarnClickFn);
+            //   $popover.find('span').text('ERROR in claiming');
+            // }
+
+	      if (data['status'] == 'ok') {
+		  $popover.addClass('claim-warn');
+		  $popover.click(claimWarnClickFn);
+		  $popover.find('span').text('Not visible');
+              } else {
+		  $popover.addClass('claim-ok');
+		  $popover.click(claimOkClickFn);
+		  $popover.find('span').text('In your profile');
+              }
               
           } else if (data['status'] == 'oauth_timeout') {
             replacePopoverWithLogin($popover);

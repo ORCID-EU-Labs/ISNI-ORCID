@@ -128,8 +128,6 @@ end
 get '/orcid/claim' do
   status = 'oauth_timeout'
 
-  # REFACTOR!! get most/all of this into its own module
-
   if signed_in? && params['id']
     id = params['id']
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
@@ -211,9 +209,12 @@ get '/orcid/sync' do
   status = 'oauth_timeout'
 
   if signed_in?
+    logger.debug "user is still logged in, updating ORCID profile data"
     if OrcidUpdate.perform(session_info)
+      logger.info "Updated ORCID info went OK"
       status = 'ok'
     else
+      logger.warn "Problem with updating ORCID info!"
       status = 'oauth_timeout'
     end
   end

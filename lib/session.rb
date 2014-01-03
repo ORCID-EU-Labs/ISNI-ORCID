@@ -11,8 +11,7 @@ module Session
   end
 
   def update_profile
-    #logger.debug "retrieving ORCID profile for #{session[:orcid][:uid]}"
-    logger.debug "session: " + session.ai
+    logger.debug "Retrieving ORCID profile data, got session data = " + session.ai
     response = auth_token.get "/v1.1/#{session[:orcid][:uid]}/orcid-profile", :headers => {'Accept' => 'application/json'}
     if response.status == 200
       json = JSON.parse(response.body)
