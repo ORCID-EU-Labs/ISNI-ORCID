@@ -4,23 +4,33 @@
 
 <div class="item-data">
     <p class="lead">ISNI <%= item.id.gsub(/(\d{4})/, '\1 \2').gsub(/\s$/, '') %></p>
-    <p>Names associated with this identifier:</p>
-      <ul>
-        <li><%= item.family_name %>, <%= item.given_names %></li>
+    <h5>Names associated with this identifier:</h5>
+    <ul>
+      <li><%= item.family_name %>, <%= item.given_names %></li>
       <%  item.other_names.each do |n| %>
-        <li><%= n %></li>
+      <li><%= n %></li>
       <% end %>
-      </ul>
+    </ul>
   <%= partial :item_links, :locals => {item: item} %>
-</div>
 
- <% end %>
-<script>
-  
-  function showCitationsBox(hashed) {
-    $('#citations-' + hashed).modal();
+  <div class="work-list-outer hidden">
+    <h5>Works with ISBNs associated with this identifier:</h5>
+    <div class="work-list"  id="works-<%= item.id %>">
+      <span>Loading work list <br />&nbsp;&nbsp;&nbsp;&nbsp;<img src="/images/ajax-loader.gif" /></span>
+    </div>
+  <% if signed_in? &&  item.in_user_profile? %>
+    <script>
+
+$('#works-<%= item.id %>').parent().removeClass("hidden");
+$('#works-<%= item.id %>').load("/works/list?id=<%= item.id %>", function( response, status, xhr ) {
+  if ( status == "error" ) {
+    var msg = "ERROR retrieving work list: ";
+    $( "#works-<%= item.id %> span" ).html( msg + xhr.status + " " + xhr.statusText );
   }
+});
+    </script>
+  <% end %>
+  </div>
+</div>
+<% end %>
 
-
-
-</script>

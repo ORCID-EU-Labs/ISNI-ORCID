@@ -70,7 +70,7 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
 
-    var $p = $('<p>').text('Last time we checked, this identifier was in your ORCID profile. Refresh to retrieve changes to your works from ORCID.');
+    var $p = $('<p>').text('Last time we checked, this identifier was in your ORCID profile. Refresh to retrieve latest profile data from ORCID.');
     var $btnClose = $('<button>').addClass('btn').addClass('claim-close-btn').text('Close');
     var $btnRefresh = $('<button>').addClass('btn').addClass('btn-warning').addClass('claim-refresh-btn').text('Refresh');
     var $btns = $('<div>').addClass('btn-container').append($btnClose).append($btnRefresh);
@@ -139,6 +139,16 @@ $(document).ready(function() {
 		  $popover.addClass('claim-ok');
 		  $popover.click(claimOkClickFn);
 		  $popover.find('span').text('In your profile');
+
+		  // unhide works list div and then load the list of works into its child div
+		  work_div = $popover.parents('.item-data').find('.work-list-outer');
+		  work_div.removeClass("hidden");
+		  work_div.find('.work-list').load("/works/list?id=" + $popover.attr('id'), function( response, status, xhr ) {
+		      if ( status == "error" ) {
+			  var msg = "ERROR retrieving work list: ";
+			  work_div.find('.work-list span').html( msg + xhr.status + " " + xhr.statusText );
+		      }
+		  });
               }
               
           } else if (data['status'] == 'oauth_timeout') {

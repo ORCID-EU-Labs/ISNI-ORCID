@@ -21,6 +21,7 @@ class SearchResult
     @given_names     = args[:given_names]
     @family_name     = args[:family_name]
     @other_names     = args[:other_names]
+    @works           = args[:works]
     user_state       = args[:user_state]
     @user_claimed    = user_state[:claimed]
     @in_user_profile = user_state[:in_profile]
@@ -31,8 +32,9 @@ class SearchResult
                                                 uri: @uri,
                                                 given_names: @given_names,
                                                 family_name: @family_name,
-                                                other_names: @other_names},
-                                                { :upsert => true })
+                                                other_names: @other_names,
+                                                works: @works},
+                                               { :upsert => true })
     
 
   end

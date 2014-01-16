@@ -54,7 +54,7 @@ helpers do
 
       res = server.get '/sru/DB=1.2/', params
 
-      parse_isni_response res.body do |isni, uri, family_name, given_names, other_names|
+      parse_isni_response res.body do |isni, uri, family_name, given_names, other_names, works|
 
         # Construct a result object for each ISNI record returned from the search
         # NB this first iteration is hardcoded to ingest ISNI records. Need to generalize this
@@ -65,7 +65,7 @@ helpers do
         user_state = {:in_profile => in_profile, :claimed => claimed}
 
         result = SearchResult.new :id => isni, :uri => uri, :family_name => family_name, :given_names => given_names,
-                                  :other_names => other_names, :user_state => user_state
+                                  :other_names => other_names, :works => works, :user_state => user_state
         logger.debug "created result obj: " + result.ai
         results.push result
       end
@@ -77,6 +77,7 @@ helpers do
   def parse_isni_response res_body
     
     results = []
+    logger.debug "raw response: \n" + res_body
     parsed_response = MultiXml.parse(res_body)['searchRetrieveResponse']
     #logger.debug "Entire parsed response from ISNI: \n" + parsed_response.ai
     return unless parsed_response['records']
@@ -136,19 +137,51 @@ helpers do
       # And finally set all the names except the first one as other names for this person
       namelist.shift
 
+      # Extract list of associated works in the ISNI profile
+      logger.debug "Associated works data: \n" + rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity'].ai
+      works  = []
+      titles = rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity']['titleOfWork']
+      identifiers = rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity']['identifier']
+      unless identifiers.nil? 
+        identifiers = [identifiers] if !identifiers.kind_of? Array
+        logger.info "Got #{identifiers.size} work identifiers"
+        identifiers.each do |i|
+          logger.debug "identifier info: " + i.ai
+          logger.debug "  - Work identifier: #{i['identifierType']} #{i['identifierValue']}"
+          works <<  {
+            'identifier'     => i['identifierValue'],
+            'identifierType' => i['identifierType'] }
+        end
+        logger.debug "Got a set of work identifiers:\n" + works.ai
+        works.uniq!
+        logger.debug "Got a uniquified set of work identifiers:\n" + works.ai
+      end
+      
       # Execute the block passed in by the caller
-      yield isni, isni_uri, family_name, given_names, namelist
-
-      # ToDo later: deal with the works in the ISNI profile      
-      #puts "Associated works:"
-      #rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity'].each do |cwork|
-        
-        # foreach title (!!!??)
-        #logger.debug "  - Work: #{cwork['titleOfWork']['title']}, #{pname['forename']}"
-        
-        # foreach identifiers
-      #end
+      yield isni, isni_uri, family_name, given_names, namelist, works
+      
     end
+  end
+
+  def lookup_and_add_isbn_metadata! work
+    work_id = work['identifier']
+    logger.info "Retrieving work metadata for ISBN #{work_id}"
+    response = Faraday.get "http://xisbn.worldcat.org/webservices/xid/isbn/#{work_id}/metadata.js?fl=*"
+    result = JSON.parse(response.body)["list"][0]
+    logger.debug "Work metadata for ISBN #{work_id}:" + result.ai
+    logger.info "Work info from xISBN: #{result['title']}. #{result['author']}. #{result['publisher']} #{result['year']}"        
+    work['title']    = result['title']
+    work['author']    = result['author']
+    work['year']      = result['year']
+    work['publisher'] = result['publisher']
+    work['url']       = "http://www.worldcat.org/isbn/" + work_id
+    
+    # minor cleanup
+    work['author'].gsub! /^\[/, ""
+    work['author'].gsub! /(\]|\]\.)$/, ""
+
+    # ??? create a Result object here instead??
+
   end
 
   def response_format

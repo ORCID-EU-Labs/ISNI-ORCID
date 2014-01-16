@@ -128,6 +128,8 @@ end
 get '/orcid/claim' do
   status = 'oauth_timeout'
 
+  # TODO!! make this handle either bio OR biblio records? avoid having two handlers for doing basically the same thing...
+
   if signed_in? && params['id']
     id = params['id']
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
@@ -139,7 +141,7 @@ get '/orcid/claim' do
       logger.info "ID #{id} is already claimed, not doing anything!"
       status = 'ok'
     else
-      logger.debug "Retrieving metadata from MongoDB for #{id}"
+      logger.debug "Retrieving bio metadata from MongoDB for #{id}"
       bio_record = settings.bios.find_one({:id => id})
 
       if !bio_record
@@ -221,6 +223,51 @@ get '/orcid/sync' do
 
   content_type 'application/json'
   {:status => status}.to_json
+end
+
+get '/works/list' do
+
+  status = 'oauth_timeout'
+  
+  if signed_in? && params['id']
+    id = params['id']
+    
+    # Fetch ORCID and external bio metadata
+    orcid_record = settings.orcids.find_one({:orcid => sign_in_id})   
+    logger.debug "Retrieved ORCID profile data for " + sign_in_id + ": " + orcid_record.ai
+    bio_record = settings.bios.find_one({:id => id})
+    if !bio_record
+      status = 'no_such_id'
+      logger.warn "No bio record found for #{id}"
+    else       
+      logger.debug "Retrieved bio metadata for #{id} from MongoDB: " + bio_record.ai      
+    end
+
+    # For each work identifier at hand, look up metadata if we can
+    works = bio_record['works']
+    works.size == 0 and return "No works found"    
+
+    works.each do |work|
+      logger.debug "Got work identifier: " + work.ai      
+      
+      # ATTN!! For now, we only grab metadata for books which have ISBNs
+
+      # ToDo?? only fetch metadata if we haven't already done it previously and cached locally
+      if work['identifierType'] == 'ISBN'        
+        lookup_and_add_isbn_metadata! work
+      end
+    end
+
+    logger.debug "final works hash: " + works.ai
+    
+    # Finally pass set of works w/ titles etc. (same hash?) to template which renders the work list    
+    page = {:query => '', :works => works}
+    erb :work_list, :layout => false, :locals => {page: page}
+    
+    # [gera annarsstadar, helper eda Claim class? ]
+    # gera more flexible orcid setup, external_ids (type+value)  vs. work_ids o.s.fr.
+    
+  end
 end
 
 get '/auth/orcid/callback' do

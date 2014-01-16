@@ -33,9 +33,9 @@ class OrcidClaim
     logger.debug { "ORCID record:\n"   + @oauth.ai}
     logger.debug { "External record:\n" + @record.ai}
 
-    # ToDo: add check for type of claim (bio vs. work) and have 2x XML-generation methods
-    logger.debug "XML for POSTing: " + to_xml
-
+    # ToDo: add check for type of claim (bio vs. work) and have 2x XML-generation methods?
+    #work_to_xml
+    #bio_to_xml
     load_config
 
     # Need to check both since @oauth may or may not have been serialized back and forth from JSON.
@@ -213,6 +213,17 @@ class OrcidClaim
     xml.send(:'external-id-url', @record['uri'])
   end
 
+  def xml_root_attributes
+    
+  end
+
+  def work_to_xml
+
+  end
+
+  def bio_to_xml
+
+  end
 
   def to_xml
     root_attributes = {
