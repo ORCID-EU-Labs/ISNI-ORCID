@@ -1,9 +1,6 @@
 MAX_EXPAND_CHARS = 240;
 
 $(document).ready(function() {
-  $('.oa-tooltip').tooltip({
-    title: 'Article is published in a journal present in the Directory of Open Access Journals.'
-  });
 
   $('.expand').each(function() {
     if ($(this).text().length > MAX_EXPAND_CHARS) {
@@ -109,10 +106,10 @@ $(document).ready(function() {
     return false;
   }
 
-  var performClaim = function($popover) {
+    var performClaim = function($popover, $is_work) {
     $.ajax({
         url: '/orcid/claim',
-        data: {id: $popover.attr('id')},
+        data: {id: $popover.attr('id'), is_work: $is_work},
         success: function(data) {
           if (data['status'] == 'ok' || data['status'] == 'ok_visible') {
             $popover.popover('destroy');
@@ -140,16 +137,12 @@ $(document).ready(function() {
 		  $popover.click(claimOkClickFn);
 		  $popover.find('span').text('In your ORCID record');
 
-		  // unhide works list div and then load the list of works into its child div
-		  work_div = $popover.parents('.item-data').find('.work-list-outer');
-		  work_div.removeClass("hidden");
-		  work_div.find('.work-list').load("/works/list?id=" + $popover.attr('id'), function( response, status, xhr ) {
-		      if ( status == "error" ) {
-			  var msg = "ERROR retrieving work list: ";
-			  work_div.find('.work-list span').html( msg + xhr.status + " " + xhr.statusText );
-		      }
-		  });
-              }
+		  // Load the list of works into a sibling div
+		  if($is_work == false) {
+		      work_div = $popover.parents('.item-data').find('.work-list-outer');
+		      loadWorkList(work_div);
+		  }
+	      }
               
           } else if (data['status'] == 'oauth_timeout') {
             replacePopoverWithLogin($popover);
@@ -172,6 +165,13 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
     
+      
+      // check if we are claiming a work here or an external identifier
+      var is_work = false;
+      if($(this).parents('.work-list')) {
+	  is_work = true;
+      }
+	  
     var $p = $('<p>').text('Are you sure you want to add this identifier to your ORCID record?');
     var $btnNo = $('<button>').addClass('btn').addClass('claim-no-btn').text('No');
     var $btnOk = $('<button>').addClass('btn').addClass('btn-success').addClass('claim-ok-btn').text('Yes');
@@ -182,7 +182,7 @@ $(document).ready(function() {
     $(this).popover({
       placement: 'bottom',
       html: true,
-      title: 'YES, this is me - add to ORCID',
+      title: 'Add to ORCID',
       content: $('<div>').append($content).html(),
       trigger: 'manual'
     });
@@ -206,7 +206,7 @@ $(document).ready(function() {
       $(this).addClass('disabled');
       $(this).parent().find('.btn').addClass('disabled');
 
-      performClaim($popover);
+	performClaim($popover, is_work);
       
       e.preventDefault();
       return false;
@@ -274,7 +274,7 @@ $(document).ready(function() {
           $popover.addClass('claim-none');
           $popover.unbind('click');
           $popover.click(claimNoneClickFn);
-          $popover.find('span').text('YES, this is me - add to ORCID');
+          $popover.find('span').text('YES, add to ORCID');
           $popover.find('i').removeClass('icon-circle');
           $popover.find('i').addClass('icon-circle-blank');
         },
@@ -290,7 +290,29 @@ $(document).ready(function() {
     return false;
   }
 
-  $('.claim-ok').click(claimOkClickFn);
-  $('.claim-warn').click(claimWarnClickFn);
-  $('.claim-none').click(claimNoneClickFn);
+
+    function loadWorkList (div) {
+	div.removeClass("hidden");
+	id = div.find('.work-list').attr('id')
+	div.find('.work-list').load("/works/list?id=" + id, function( response, status, xhr ) {
+	    if ( status == "error" ) {
+		var msg = "ERROR retrieving work list: ";
+		div.find(".work-list span" ).html( msg + xhr.status + " " + xhr.statusText );
+            }
+	    //alert("Finished loading work list for id=" + id + ", adding click handlers");	
+	    div.find('.claim-ok'  ).click(claimOkClickFn  );
+	    div.find('.claim-warn').click(claimWarnClickFn);
+	    div.find('.claim-none').click(claimNoneClickFn);
+
+	});	
+    }
+
+    // load list of works, but only for the ISNI IDs that user has claimed
+    $('div.work-list-outer-claimed').each(function() {
+	loadWorkList($(this));
+    });
+    
+    $('.claim-ok'  ).click(claimOkClickFn  );
+    $('.claim-warn').click(claimWarnClickFn);
+    $('.claim-none').click(claimNoneClickFn);
 });

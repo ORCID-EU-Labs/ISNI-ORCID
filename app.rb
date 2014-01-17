@@ -128,14 +128,14 @@ end
 get '/orcid/claim' do
   status = 'oauth_timeout'
 
-  # TODO!! make this handle either bio OR biblio records? avoid having two handlers for doing basically the same thing...
-
   if signed_in? && params['id']
     id = params['id']
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
     already_added = !orcid_record.nil? && orcid_record['ids'].include?(id)
 
-    logger.info "Initiating claim for identifier #{id}"
+    id_type = params['is_work'] == 'true' ? 'work' : 'external'
+
+    logger.info "Initiating claim for #{id_type} identifier #{id}"
    
     if already_added
       logger.info "ID #{id} is already claimed, not doing anything!"

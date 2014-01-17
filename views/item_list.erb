@@ -13,22 +13,31 @@
     </ul>
   <%= partial :item_links, :locals => {item: item} %>
 
-  <div class="work-list-outer hidden">
+  <div class="work-list-outer <% if signed_in? &&  item.in_user_profile? %> work-list-outer-claimed<% end %> hidden">
     <h5>Works with ISBNs associated with this identifier:</h5>
-    <div class="work-list"  id="works-<%= item.id %>">
+    <div class="work-list"  id="<%= item.id %>">
       <span>Loading work list <br />&nbsp;&nbsp;&nbsp;&nbsp;<img src="/images/ajax-loader.gif" /></span>
     </div>
   <% if signed_in? &&  item.in_user_profile? %>
     <script>
 
-$('#works-<%= item.id %>').parent().removeClass("hidden");
-$('#works-<%= item.id %>').load("/works/list?id=<%= item.id %>", function( response, status, xhr ) {
-  if ( status == "error" ) {
-    var msg = "ERROR retrieving work list: ";
-    $( "#works-<%= item.id %> span" ).html( msg + xhr.status + " " + xhr.statusText );
-  }
-});
+//work_div = $(this).parents('.item-data').find('.work-list-outer');
+//work_div.removeClass("hidden");
+//work_div.find('.work-list').load("/works/list?id=<%= item.id %>", function( response, status, xhr ) {
+//  if ( status == "error" ) {
+//    var msg = "ERROR retrieving work list: ";
+//    work_div.find(".work-list span" ).html( msg + xhr.status + " " + xhr.statusText );
+//  }
+//});
+
+//Reload, to wire up all the new claim/refresh/etc. buttons on the page with the appropriate handlers (see itemlist.js)
+//location.reload;
+//work_div.find('.claim-ok').click(claimOkClickFn);
+//work_div.find('.claim-warn').click(claimWarnClickFn);
+//work_div.find('.claim-none').click(claimNoneClickFn);
+
     </script>
+
   <% end %>
   </div>
 </div>
