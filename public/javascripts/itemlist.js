@@ -70,7 +70,7 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
 
-    var $p = $('<p>').text('Last time we checked, this identifier was in your ORCID profile. Refresh to retrieve latest profile data from ORCID.');
+    var $p = $('<p>').text('Last time we checked, this identifier was in your ORCID record. Refresh to retrieve latest data from ORCID.');
     var $btnClose = $('<button>').addClass('btn').addClass('claim-close-btn').text('Close');
     var $btnRefresh = $('<button>').addClass('btn').addClass('btn-warning').addClass('claim-refresh-btn').text('Refresh');
     var $btns = $('<div>').addClass('btn-container').append($btnClose).append($btnRefresh);
@@ -80,7 +80,7 @@ $(document).ready(function() {
     $(this).popover({
       placement: 'bottom',
       html: true,
-      title: 'Identifier is in your ORCID profile',
+      title: 'Identifier is in your ORCID record',
       content: $('<div>').append($content).html(),
       trigger: 'manual'
     });
@@ -138,7 +138,7 @@ $(document).ready(function() {
               } else {
 		  $popover.addClass('claim-ok');
 		  $popover.click(claimOkClickFn);
-		  $popover.find('span').text('In your profile');
+		  $popover.find('span').text('In your ORCID record');
 
 		  // unhide works list div and then load the list of works into its child div
 		  work_div = $popover.parents('.item-data').find('.work-list-outer');
@@ -172,7 +172,7 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
     
-    var $p = $('<p>').text('Are you sure you want to add this identifier to your ORCID profile?');
+    var $p = $('<p>').text('Are you sure you want to add this identifier to your ORCID record?');
     var $btnNo = $('<button>').addClass('btn').addClass('claim-no-btn').text('No');
     var $btnOk = $('<button>').addClass('btn').addClass('btn-success').addClass('claim-ok-btn').text('Yes');
     var $btns = $('<div>').addClass('btn-container').append($btnNo).append($btnOk);
@@ -221,7 +221,7 @@ $(document).ready(function() {
     $('.claim-warn').popover('destroy');
     $('.claim-ok').popover('destroy');
 
-    var $text = $('<div>').html('<span>Identifier has been added to your ORCID profile.<br/><br/>If you have removed this private identifier from your ORCID profile you can click the button below to also remove it from this service.</span>');
+    var $text = $('<div>').html('<span>Identifier has been added to your ORCID record.<br/><br/>If you have removed this private identifier from your ORCID record you can click the button below to also remove it from this service.</span>');
     var $btnClose = $('<button>').addClass('btn').addClass('claim-close-btn').text('Close');
     var $btnRefresh = $('<button>').addClass('btn').addClass('btn-warning').addClass('claim-refresh-btn').text('Refresh');
     var $btnRemove = $('<button>').addClass('btn').addClass('btn-danger').addClass('claim-remove-btn').text('Remove');
@@ -232,7 +232,7 @@ $(document).ready(function() {
     $(this).popover({
       placement: 'bottom',
       html: true,
-      title: 'Identifier is private in your ORCID profile',
+      title: 'Identifier is private in your ORCID record',
       content: $('<div>').append($content).html(),
       trigger: 'manual'
     });
