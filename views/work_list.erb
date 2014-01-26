@@ -1,0 +1,29 @@
+
+    <ul>
+<% page[:works].each do |work| %>
+      <li>
+        <b><%= work['title'] %></b> by <%= work['author'] %><br />
+        Publisher: <%= work['publisher'] %>, <%= work['year'] %><br />
+  <div class="item-links">
+    <a href="<%= work['url'] %>">
+      <i class="icon-external-link"></i>
+      <%= work['url'] %>
+    </a>
+      <%# if item.in_user_profile? %>
+      <% if work['claimed'] == true %>
+        <span class="well-transparent claim-ok" id="<%= work['identifier'] %>">
+          <img src="/images/orcid_16x16.gif" alt="" />
+          <span>In your ORCID record</span>
+        </span>
+      <% else %>
+        <span class="well-transparent claim-none" id="<%= work['identifier'] %>">
+          <img src="/images/orcid_16x16.gif" alt="" />
+          <span>YES, this is my work - add to ORCID</span>
+        </span>
+      <% end %>
+  </div>
+
+      </li>
+ <% end %>
+    </ul>
+
