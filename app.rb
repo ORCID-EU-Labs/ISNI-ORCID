@@ -142,7 +142,10 @@ get '/orcid/claim' do
     else
       id_type = "ISNI"
       work_id = nil
-      already_added = orcid_record['external_ids'].any? {|h| h['id'] == id && h['type'] == 'ISNI' }
+      already_added = false
+      unless orcid_record['external_ids'].nil?
+        already_added = orcid_record['external_ids'].any? {|h| h['id'] == id && h['type'] == 'ISNI' }
+      end
     end
     
     if already_added
