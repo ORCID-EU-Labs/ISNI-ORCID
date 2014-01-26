@@ -13,8 +13,6 @@ class SearchResult
   attr_accessor *PROPERTIES
 
   def initialize args
-    
-    logger.debug "args: " + args.ai
 
     @id              = args[:id]
     @uri             = args[:uri]

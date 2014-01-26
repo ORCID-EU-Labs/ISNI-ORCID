@@ -59,14 +59,17 @@ helpers do
       logger.debug "query params: " + params.ai
 
       res = server.get '/sru/DB=1.2/', params
+      
+      orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
+      logger.debug "Will check list of records found with alraedy-claimed IDs in ORCID profile:\n" + orcid_record.ai
 
       # Extract the parts of the ISNI metadata record we need
       parse_isni_response res.body do |isni, uri, family_name, given_names, other_names, works|
         
         # Determine if the ID is claimed already
-        #in_profile = profile_ids.include?(isni)        
+        #in_profile = profile_ids.include?(isni)
         #claimed = claimed_ids.include?(isni)
-        claimed = claimed_external_ids.any? {|h| h["id"] == isni && h["type"] == "ISNI" }
+        claimed = orcid_record['external_ids'].any? {|h| h["id"] == isni && h["type"] == "ISNI" }
         in_profile = claimed
 
         user_state = {:in_profile => in_profile, :claimed => claimed}
@@ -76,7 +79,6 @@ helpers do
         # and possibly allow for subclasses/callbacks to handle other types of records.        
         result = SearchResult.new :id => isni, :uri => uri, :family_name => family_name, :given_names => given_names,
                                   :other_names => other_names, :works => works, :user_state => user_state
-        logger.debug "created result obj: " + result.ai
         results.push result
       end
     end
@@ -88,7 +90,6 @@ helpers do
   def parse_isni_response res_body
     
     results = []
-    logger.debug "raw response: \n" + res_body
     parsed_response = MultiXml.parse(res_body)['searchRetrieveResponse']
     #logger.debug "Entire parsed response from ISNI: \n" + parsed_response.ai
     return unless parsed_response['records']
@@ -101,7 +102,7 @@ helpers do
       #logger.debug "full ISNI metadata record: " + rdata.ai
       isni     = rdata['isniUnformatted']
       isni_uri = rdata['isniURI']
-      logger.debug "sources: " + rdata['ISNIMetadata']['sources'].ai
+      #logger.debug "sources: " + rdata['ISNIMetadata']['sources'].ai
 
       # ToDo: grab sources list also
 
@@ -149,23 +150,20 @@ helpers do
       namelist.shift
 
       # Extract list of associated works in the ISNI profile
-      logger.debug "Associated works data: \n" + rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity'].ai
+      logger.debug "Associated works data in ISNI record: \n" + rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity'].ai
       works  = []
       titles = rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity']['titleOfWork']
       identifiers = rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity']['identifier']
-      unless identifiers.nil? 
+      unless identifiers.nil?
         identifiers = [identifiers] if !identifiers.kind_of? Array
         logger.info "Got #{identifiers.size} work identifiers"
         identifiers.each do |i|
-          logger.debug "identifier info: " + i.ai
-          logger.debug "  - Work identifier: #{i['identifierType']} #{i['identifierValue']}"
           works <<  {
             'identifier'     => i['identifierValue'],
             'identifierType' => i['identifierType'] }
         end
-        logger.debug "Got a set of work identifiers:\n" + works.ai
         works.uniq!
-        logger.debug "Got a uniquified set of work identifiers:\n" + works.ai
+        logger.info "Got a uniquified set of work identifiers associated with ISNI #{isni}:\n" + works.ai
       end
       
       # Execute the block passed in by the caller
@@ -180,8 +178,7 @@ helpers do
     logger.info "Retrieving work metadata for ISBN #{work_id}: #{xisbn_url}"
     response = Faraday.get xisbn_url
     result = JSON.parse(response.body)["list"][0]
-    logger.debug "Got work metadata from ISBN #{work_id}:" + result.ai
-    logger.info "Work info from xISBN: #{result['title']}. #{result['author']}. #{result['publisher']} #{result['year']}"        
+    #logger.debug "Got work metadata from ISBN #{work_id}:" + result.ai
     work['title']    = result['title']
     work['author']    = result['author']
     work['year']      = result['year']
@@ -191,9 +188,6 @@ helpers do
     # A bit of cleanup
     work['author'].gsub! /^\[/, ""
     work['author'].gsub! /(\]|\]\.)$/, ""
-
-    # ??? create a Result object here instead??
-
   end
 
   def response_format

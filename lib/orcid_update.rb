@@ -41,13 +41,11 @@ class OrcidUpdate
       token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
       headers = {'Accept' => 'application/json'}
       response = token.get "/v1.1/#{uid}/orcid-profile", {:headers => headers}
-      #response = Faraday.get "http://pub.sandbox-1.orcid.org/v1.1/" + uid, {}, headers
 
       if response.status == 200
         response_json = JSON.parse(response.body)
         # logger.debug "Got response JSON from ORCID:\n" + response_json.ai
 
-        # ToDo!! for later, need 2x calls here, one to get the works IDs as before and another for the external IDs
         parsed_external_ids = parse_external_ids(response_json)
         parsed_work_ids     = parse_work_ids(response_json)
         query = {:orcid => uid}
@@ -117,7 +115,8 @@ class OrcidUpdate
         if has_path?(work, ['work-external-identifiers', 'work-external-identifier'])
           ids = work['work-external-identifiers']['work-external-identifier']
           ids.each do |id|
-            extracted_ids << {'type'   => id['work-external-identifier-type']['value'],
+            logger.debug "work id info: " + id.ai
+            extracted_ids << {'type'   => id['work-external-identifier-type'],
                               'id'     => id['work-external-identifier-id']['value']}
           end            
         end

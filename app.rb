@@ -186,7 +186,7 @@ get '/orcid/claim' do
       end
 
       # Update MongoDB record for this ORCID
-      # TODO shove this update logic into a helper method
+      # TODO shove this update logic into a helper method OR the orcid_claim.rb module
       if claim_ok
         if orcid_record
           orcid_record['updated'] = true
@@ -200,13 +200,17 @@ get '/orcid/claim' do
         
         # The ID could have been added as limited or public. If so we need to tell the UI.
         OrcidUpdate.perform(session_info)
-        updated_orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-        
-        if updated_orcid_record['ids'].include?(id)
-          status = 'ok_visible'
-        else
-          status = 'ok'
-        end
+        status = 'ok_visible'
+
+        # NB for now, ignoring the limited vs. public issue and assume the user has his
+        # external IDs publicly visible.        
+
+        #updated_orcid_record = settings.orcids.find_one({:orcid => sign_in_id})        
+        #if updated_orcid_record['external_ids'].include?(id)
+        #  status = 'ok_visible'
+        #else
+        #  status = 'ok'
+        #end
       end
     end
   end
@@ -280,7 +284,7 @@ get '/works/list' do
         # TODO: check against list of work IDs in profile to see if user has claimed this work already
         # get list from profile
         claimed_work_ids = orcid_record['work_ids']
-        claimed = claimed_work_ids.any? {|h| h["id"] == work['identifierType'] && h["type"] == "ISBN" }
+        claimed = claimed_work_ids.any? {|h| h["id"] == work['identifier'] && h["type"] == work['identifierType'] }
         work['claimed'] = claimed
         logger.debug "Got final work identifier metadata: " + work.ai
         works << work
