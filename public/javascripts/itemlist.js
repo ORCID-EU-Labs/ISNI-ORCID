@@ -53,7 +53,8 @@ $(document).ready(function() {
         } else if (data['status'] == 'oauth_timeout') {
           replacePopoverWithLogin($popover);
         } else {
-          location.reload();
+            $popover.find('span').text('ERROR: ' + data['status']);
+            $popover.popover('destroy');
         }  
       },
       error: function() {
@@ -107,9 +108,24 @@ $(document).ready(function() {
   }
 
     var performClaim = function($popover, $is_work) {
+
+	work_id     = null;
+	external_id = null;
+
+	// A little tricker required to make sure we pass the right IDs to the API. The user could be
+	// either A) claiming a work associted with a certain external record he's already claimed (his ISNI)
+	// or B) claiming the external ISNI record itself.
+	if($is_work == true) {
+	    work_id = $popover.attr('id');
+	    external_id = $popover.parents('.work-list').attr('id');
+	}
+	else {
+	    external_id = $popover.attr('id');
+	}
+	
     $.ajax({
         url: '/orcid/claim',
-        data: {id: $popover.attr('id'), is_work: $is_work},
+        data: {id: external_id, is_work: $is_work, work_id: work_id},
         success: function(data) {
           if (data['status'] == 'ok' || data['status'] == 'ok_visible') {
             $popover.popover('destroy');
@@ -150,7 +166,7 @@ $(document).ready(function() {
             $popover.find('span').text('No such DOI');
             $popover.popover('destroy');
           } else {
-            $popover.find('span').text('ERROR: ' + data['status']);
+            $popover.find('span').text('API ERROR. Please try again later');
             $popover.popover('destroy');
           }
         },
@@ -168,7 +184,7 @@ $(document).ready(function() {
       
       // check if we are claiming a work here or an external identifier
       var is_work = false;
-      if($(this).parents('.work-list')) {
+      if($(this).parents('.work-list').length) {
 	  is_work = true;
       }
 	  
@@ -290,7 +306,7 @@ $(document).ready(function() {
     return false;
   }
 
-
+    // Retrieve the list of works associated with external record and place in the page 
     function loadWorkList (div) {
 	div.removeClass("hidden");
 	id = div.find('.work-list').attr('id')
@@ -307,7 +323,7 @@ $(document).ready(function() {
 	});	
     }
 
-    // load list of works, but only for the ISNI IDs that user has claimed
+    // load the list of works, but only for the ISNI IDs that user has claimed
     $('div.work-list-outer-claimed').each(function() {
 	loadWorkList($(this));
     });

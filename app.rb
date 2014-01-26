@@ -129,63 +129,88 @@ get '/orcid/claim' do
   status = 'oauth_timeout'
 
   if signed_in? && params['id']
-    id = params['id']
+    id      = params['id'] # The external ID
+    work_id = params['work_id'] # The work ID, if user is claiming a work
     orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-    already_added = !orcid_record.nil? && orcid_record['ids'].include?(id)
-
-    id_type = params['is_work'] == 'true' ? 'work' : 'external'
-
-    logger.info "Initiating claim for #{id_type} identifier #{id}"
-   
+    
+    is_work = params['is_work'] == 'true' ? true : false
+    id_type = nil
+    already_added = false
+    if is_work
+      id_type = "ISBN" # ATTN hardcoding to ISBNs here, for now
+      already_added = orcid_record['work_ids'].any? {|h| h['id'] == id && h['type'] == id_type }
+    else
+      id_type = "ISNI"
+      work_id = nil
+      already_added = orcid_record['external_ids'].any? {|h| h['id'] == id && h['type'] == 'ISNI' }
+    end
+    
     if already_added
-      logger.info "ID #{id} is already claimed, not doing anything!"
+      logger.info "#{id_type} identifier #{id} is already claimed, not doing anything!"
       status = 'ok'
     else
-      logger.debug "Retrieving bio metadata from MongoDB for #{id}"
-      bio_record = settings.bios.find_one({:id => id})
+      logger.info "Unclaimed #{id_type} identifier #{id}, so initiating claim by ORCID #{sign_in_id}"
 
+      # Grab the external bio record, we'll need this info either way
+      bio_record = settings.bios.find_one({:id => id})
       if !bio_record
         status = 'no_such_id'
-        logger.warn "No bio record found for #{id}"
-      else       
-        logger.debug "Got some bio metadata from MongoDB: " + bio_record.ai
+        logger.warn "No bio record found for external ID #{id}"
+      else
+        logger.debug "Got some bio metadata: " + bio_record.ai
+      end
 
-        claim_ok = false
-        begin
-          claim_ok = OrcidClaim.perform(session_info, bio_record) 
-        rescue => e
-          # ToDo: need more useful error messaging here, for displaying to user
-          status = "could not claim"
-          logger.error "Caught exception from claim process: #{e}: \n" + e.backtrace.join("\n")
+      # Grab the work record if user is claiming a work associated with the external ID (the bio-record) in hand
+      if !work_id.nil?
+        work_record = {'identifier' => work_id}
+        lookup_and_add_isbn_metadata! work_record
+        logger.debug "Got some work metadata: " + work_record.ai
+      end
+          
+      # Let's begin the claim process
+      claim_ok = false
+      begin
+        claim_ok = OrcidClaim.perform(session_info, bio_record, work_record) 
+      rescue => e
+        logger.error "Error message from claim process: #{e}: \n"
+
+        # Supply some reasonably human-friendly error messaging here, at least for the 
+        #common claim-failure scenarios
+        status = case e.to_s
+                 when /Insufficient or wrong scope/i
+                   "oauth_timeout"
+                   # [can catch more messages with additional when's, and add corresponding messaging in itemlist.js]
+                 else
+                   "API error: #{e}"
+                 end
+      end
+
+      # Update MongoDB record for this ORCID
+      # TODO shove this update logic into a helper method
+      if claim_ok
+        if orcid_record
+          orcid_record['updated'] = true
+          orcid_record['locked_ids'] << id
+          orcid_record['locked_ids'].uniq!
+          settings.orcids.save(orcid_record)
+        else
+          doc = {:orcid => sign_in_id, :ids => [], :locked_ids => [id]}
+          settings.orcids.insert(doc)
         end
-
-        # Update MongoDB record for this ORCID
-        if claim_ok          
-          if orcid_record
-            orcid_record['updated'] = true
-            orcid_record['locked_ids'] << id
-            orcid_record['locked_ids'].uniq!
-            settings.orcids.save(orcid_record)
-          else
-            doc = {:orcid => sign_in_id, :ids => [], :locked_ids => [id]}
-            settings.orcids.insert(doc)
-          end
-          
-          # The ID could have been added as limited or public. If so we need
-          # to tell the UI.
-          OrcidUpdate.perform(session_info)
-          updated_orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-          
-          if updated_orcid_record['ids'].include?(id)
-            status = 'ok_visible'
-          else
-            status = 'ok'
-          end
+        
+        # The ID could have been added as limited or public. If so we need to tell the UI.
+        OrcidUpdate.perform(session_info)
+        updated_orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
+        
+        if updated_orcid_record['ids'].include?(id)
+          status = 'ok_visible'
+        else
+          status = 'ok'
         end
       end
     end
   end
-
+  
   content_type 'application/json'
   {:status => status}.to_json
 end
@@ -244,19 +269,24 @@ get '/works/list' do
     end
 
     # For each work identifier at hand, look up metadata if we can
-    works = bio_record['works']
-    works.size == 0 and return "No works found"    
-
-    works.each do |work|
-      logger.debug "Got work identifier: " + work.ai      
+    works = []
+    bio_record['works'].each do |work|
       
       # ATTN!! For now, we only grab metadata for books which have ISBNs
-
-      # ToDo?? only fetch metadata if we haven't already done it previously and cached locally
-      if work['identifierType'] == 'ISBN'        
+      # ToDo?? only fetch metadata if we haven't already done this previously and cached locally
+      if work['identifierType'] == 'ISBN'
         lookup_and_add_isbn_metadata! work
+
+        # TODO: check against list of work IDs in profile to see if user has claimed this work already
+        # get list from profile
+        claimed_work_ids = orcid_record['work_ids']
+        claimed = claimed_work_ids.any? {|h| h["id"] == work['identifierType'] && h["type"] == "ISBN" }
+        work['claimed'] = claimed
+        logger.debug "Got final work identifier metadata: " + work.ai
+        works << work
       end
     end
+    works.size == 0 and return "No works found"    
 
     logger.debug "final works hash: " + works.ai
     
