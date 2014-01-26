@@ -41,20 +41,23 @@ class OrcidClaim
     uid = @oauth[:uid] || @oauth['uid']
 
     opts = {:site => @conf['orcid']['site'], :raise_errors => false  }
-    logger.info "Connecting to ORCID OAuth API at site #{opts[:site]} to post claim data"
     
     client = OAuth2::Client.new( @conf['orcid']['client_id'],  @conf['orcid']['client_secret'], opts)
     token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
     headers = {'Accept' => 'application/json'}
-    response = token.post("/v1.1/#{uid}/orcid-bio/external-identifiers") do |post|
+
+    # Choose ORCID API endpoint depending on whether we're POSTIng a work or an external
+    api_endpoint = "/v1.1/#{uid}/" + (@work.nil? ? "orcid-bio/external-identifiers" : "orcid-works")
+    logger.info "Connecting to ORCID OAuth API, POSTing claim data to #{opts[:site]}#{api_endpoint}"    
+    response = token.post(api_endpoint) do |post|
       post.headers['Content-Type'] = 'application/orcid+xml'
       post.body = to_xml
       logger.debug "Final XML to POST to ORCID API: \n" + post.body
     end
-    if response.status == 200
+    if response.status == 200 || response.status == 201
       return response.status
     else
-      logger.error "Bad response from ORCID API:\n  HTTP status=#{response.status}\n  API response=\n#{response.body}"
+      logger.error "Bad response from ORCID API:\n  HTTP status=#{response.status}\n  API response body=\n#{response.body}"
       error_msg_api = MultiXml.parse(response.body)['orcid_message']['error_desc']
       raise error_msg_api
     end
@@ -157,6 +160,7 @@ class OrcidClaim
     end
   end
 
+
   def insert_extid_common_name xml
     xml.send(:'external-id-common-name', "ISNI")
   end
@@ -183,7 +187,7 @@ class OrcidClaim
           xml.send(:'work-citation') {
             xml.send(:'work-citation-type', 'formatted-unspecified')
             xml.citation {
-              xml.cdata('...')
+              xml.cdata("#{@work['title']} by #{@work['author']}. Publisher: #{@work['publisher']}, #{@work['year']}")
             }
           }
           xml.send(:'work-type', "book")
