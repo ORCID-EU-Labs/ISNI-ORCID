@@ -8,12 +8,12 @@
       <% if item.in_user_profile? %>
         <span class="well-transparent claim-ok" id="<%= item.id %>">
           <img src="/images/orcid_16x16.gif" alt="" />
-          <span>In your ORCID profile</span>
+          <span>In your ORCID record</span>
         </span>
       <% elsif item.user_claimed? %>
         <span class="well-transparent claim-warn" id="<%= item.id %>">
           <img src="/images/orcid_16x16.gif" alt="" />
-          <span>Claimed but not in your ORCID profile</span>
+          <span>Claimed but not in your ORCID record</span>
         </span>
       <% else %>
         <span class="well-transparent claim-none" id="<%= item.id %>">

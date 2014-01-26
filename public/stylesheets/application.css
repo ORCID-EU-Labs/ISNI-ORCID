@@ -142,10 +142,7 @@ a:hover {
   position: relative;
 }
 .item-links {
-  position: absolute;
-  top: 50%;
   height: 1.6em;
-  margin-top:-0.8em;
 }
 .item-links img {
   margin-top: -0.33em;

@@ -25,10 +25,12 @@ helpers do
   def search server, q
     logger.debug "Building query from name variants '#{q.join(' | ')}'"
 
-    # Load up profile info for the signed-in user
+    # Load up linked, claimed identifier info for the signed-in user, to match against
+    # the search results so we can check which records have been claimed already.
     claimed_ids = []
     profile_ids = []
-
+    external_ids = []
+    work_ids     = []
     if signed_in?
       orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
       unless orcid_record.nil? 
@@ -36,6 +38,10 @@ helpers do
         if orcid_record
           claimed_ids =  (orcid_record['ids'] || []) +  (orcid_record['locked_ids']  || [])
           claimed_ids.uniq!
+          
+          claimed_external_ids = orcid_record['external_ids']
+          claimed_work_ids     = orcid_record['work_ids']          
+
           logger.info "Final list of claimed IDs:\n" + claimed_ids.ai
           profile_ids = orcid_record['ids']  || []
           profile_ids.uniq!
@@ -53,25 +59,32 @@ helpers do
       logger.debug "query params: " + params.ai
 
       res = server.get '/sru/DB=1.2/', params
+      
+      orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
+      logger.debug "Will check list of records found with alraedy-claimed IDs in ORCID profile:\n" + orcid_record.ai
 
-      parse_isni_response res.body do |isni, uri, family_name, given_names, other_names|
+      # Extract the parts of the ISNI metadata record we need
+      parse_isni_response res.body do |isni, uri, family_name, given_names, other_names, works|
+        
+        # Determine if the ID is claimed already
+        #in_profile = profile_ids.include?(isni)
+        #claimed = claimed_ids.include?(isni)
+        claimed = orcid_record['external_ids'].any? {|h| h["id"] == isni && h["type"] == "ISNI" }
+        in_profile = claimed
+
+        user_state = {:in_profile => in_profile, :claimed => claimed}
 
         # Construct a result object for each ISNI record returned from the search
         # NB this first iteration is hardcoded to ingest ISNI records. Need to generalize this
         # and possibly allow for subclasses/callbacks to handle other types of records.        
-        in_profile = profile_ids.include?(isni)
-        claimed = claimed_ids.include?(isni)
-      
-        user_state = {:in_profile => in_profile, :claimed => claimed}
-
         result = SearchResult.new :id => isni, :uri => uri, :family_name => family_name, :given_names => given_names,
-                                  :other_names => other_names, :user_state => user_state
-        logger.debug "created result obj: " + result.ai
+                                  :other_names => other_names, :works => works, :user_state => user_state
         results.push result
       end
     end
     return results
   end
+
   
   # Parse the XML response from the search API
   def parse_isni_response res_body
@@ -89,7 +102,7 @@ helpers do
       #logger.debug "full ISNI metadata record: " + rdata.ai
       isni     = rdata['isniUnformatted']
       isni_uri = rdata['isniURI']
-      logger.debug "sources: " + rdata['ISNIMetadata']['sources'].ai
+      #logger.debug "sources: " + rdata['ISNIMetadata']['sources'].ai
 
       # ToDo: grab sources list also
 
@@ -136,19 +149,45 @@ helpers do
       # And finally set all the names except the first one as other names for this person
       namelist.shift
 
+      # Extract list of associated works in the ISNI profile
+      logger.debug "Associated works data in ISNI record: \n" + rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity'].ai
+      works  = []
+      titles = rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity']['titleOfWork']
+      identifiers = rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity']['identifier']
+      unless identifiers.nil?
+        identifiers = [identifiers] if !identifiers.kind_of? Array
+        logger.info "Got #{identifiers.size} work identifiers"
+        identifiers.each do |i|
+          works <<  {
+            'identifier'     => i['identifierValue'],
+            'identifierType' => i['identifierType'] }
+        end
+        works.uniq!
+        logger.info "Got a uniquified set of work identifiers associated with ISNI #{isni}:\n" + works.ai
+      end
+      
       # Execute the block passed in by the caller
-      yield isni, isni_uri, family_name, given_names, namelist
-
-      # ToDo later: deal with the works in the ISNI profile      
-      #puts "Associated works:"
-      #rdata['ISNIMetadata']['identity']['personOrFiction']['creativeActivity'].each do |cwork|
-        
-        # foreach title (!!!??)
-        #logger.debug "  - Work: #{cwork['titleOfWork']['title']}, #{pname['forename']}"
-        
-        # foreach identifiers
-      #end
+      yield isni, isni_uri, family_name, given_names, namelist, works
+      
     end
+  end
+
+  def lookup_and_add_isbn_metadata! work
+    work_id = work['identifier']
+    xisbn_url = "http://xisbn.worldcat.org/webservices/xid/isbn/#{work_id}/metadata.js?fl=*"
+    logger.info "Retrieving work metadata for ISBN #{work_id}: #{xisbn_url}"
+    response = Faraday.get xisbn_url
+    result = JSON.parse(response.body)["list"][0]
+    #logger.debug "Got work metadata from ISBN #{work_id}:" + result.ai
+    work['title']    = result['title']
+    work['author']    = result['author']
+    work['year']      = result['year']
+    work['publisher'] = result['publisher']
+    work['url']       = "http://www.worldcat.org/isbn/" + work_id
+    
+    # A bit of cleanup
+    work['author'].gsub! /^\[/, ""
+    work['author'].gsub! /(\]|\]\.)$/, ""
   end
 
   def response_format
