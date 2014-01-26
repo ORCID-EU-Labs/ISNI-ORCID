@@ -66,12 +66,13 @@ helpers do
       # Extract the parts of the ISNI metadata record we need
       parse_isni_response res.body do |isni, uri, family_name, given_names, other_names, works|
         
-        # Determine if the ID is claimed already
-        #in_profile = profile_ids.include?(isni)
-        #claimed = claimed_ids.include?(isni)
-        claimed = orcid_record['external_ids'].any? {|h| h["id"] == isni && h["type"] == "ISNI" }
+        # Determine if this ID is claimed already
+        claimed = false
+        unless orcid_record['external_ids'].nil?
+          claimed = orcid_record['external_ids'].any? {|h| h["id"] == isni && h["type"] == "ISNI" }
+        end
         in_profile = claimed
-
+          
         user_state = {:in_profile => in_profile, :claimed => claimed}
 
         # Construct a result object for each ISNI record returned from the search

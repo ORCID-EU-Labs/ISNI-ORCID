@@ -115,7 +115,6 @@ class OrcidUpdate
         if has_path?(work, ['work-external-identifiers', 'work-external-identifier'])
           ids = work['work-external-identifiers']['work-external-identifier']
           ids.each do |id|
-            logger.debug "work id info: " + id.ai
             extracted_ids << {'type'   => id['work-external-identifier-type'],
                               'id'     => id['work-external-identifier-id']['value']}
           end            

@@ -180,6 +180,8 @@ get '/orcid/claim' do
                  when /Insufficient or wrong scope/i
                    "oauth_timeout"
                    # [can catch more messages with additional when's, and add corresponding messaging in itemlist.js]
+                 when /Write scopes for this token have expired/i
+                   "oauth_timeout"                   
                  else
                    "API error: #{e}"
                  end
@@ -283,8 +285,11 @@ get '/works/list' do
 
         # TODO: check against list of work IDs in profile to see if user has claimed this work already
         # get list from profile
+        claimed = false
         claimed_work_ids = orcid_record['work_ids']
-        claimed = claimed_work_ids.any? {|h| h["id"] == work['identifier'] && h["type"] == work['identifierType'] }
+        unless claimed_work_ids.nil?
+          claimed = claimed_work_ids.any? {|h| h["id"] == work['identifier'] && h["type"] == work['identifierType'] }
+        end
         work['claimed'] = claimed
         logger.debug "Got final work identifier metadata: " + work.ai
         works << work
