@@ -13,13 +13,14 @@ class OrcidClaim
     Log4r::Logger['test']    
   end
 
-  def initialize oauth, record
+  def initialize oauth, record, work
     @oauth = oauth
     @record = record
+    @work = work
   end
 
-  def self.perform oauth, record
-    OrcidClaim.new(oauth, record).perform
+  def self.perform oauth, record, work
+    OrcidClaim.new(oauth, record, work).perform
   end
   
   def logger
@@ -29,35 +30,36 @@ class OrcidClaim
   def perform
     oauth_expired = false
 
-    logger.info "Performing claim, associating ORCID  with external ID:"
+    logger.info "Performing claim, associating ORCID  with external ID OR claiming work ID:"
     logger.debug { "ORCID record:\n"   + @oauth.ai}
-    logger.debug { "External record:\n" + @record.ai}
-
-    # ToDo: add check for type of claim (bio vs. work) and have 2x XML-generation methods
-    logger.debug "XML for POSTing: " + to_xml
-
+    logger.debug { "External bio-record:\n" + @record.ai}
+    logger.debug { "Work record: " + @work.ai}
+    
     load_config
 
     # Need to check both since @oauth may or may not have been serialized back and forth from JSON.
     uid = @oauth[:uid] || @oauth['uid']
 
-    opts = {:site => @conf['orcid']['site']}
-    logger.info "Connecting to ORCID OAuth API at site #{opts[:site]} to post claim data"
+    opts = {:site => @conf['orcid']['site'], :raise_errors => false  }
     
     client = OAuth2::Client.new( @conf['orcid']['client_id'],  @conf['orcid']['client_secret'], opts)
     token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
     headers = {'Accept' => 'application/json'}
-    response = token.post("/v1.1/#{uid}/orcid-bio/external-identifiers") do |post|
+
+    # Choose ORCID API endpoint depending on whether we're POSTIng a work or an external
+    api_endpoint = "/v1.1/#{uid}/" + (@work.nil? ? "orcid-bio/external-identifiers" : "orcid-works")
+    logger.info "Connecting to ORCID OAuth API, POSTing claim data to #{opts[:site]}#{api_endpoint}"    
+    response = token.post(api_endpoint) do |post|
       post.headers['Content-Type'] = 'application/orcid+xml'
       post.body = to_xml
+      logger.debug "Final XML to POST to ORCID API: \n" + post.body
     end
-    #logger.debug "response obj=" + response.ai
-    
-    # Raise firm exception if we do NOT get an a-OK response back from the POST operation
-    if response.status == 200
+    if response.status == 200 || response.status == 201
       return response.status
     else
-      raise OAuth2::Error "Bad response from ORCID API: HTTP status=#{response.status}, error message=" + response.body
+      logger.error "Bad response from ORCID API:\n  HTTP status=#{response.status}\n  API response body=\n#{response.body}"
+      error_msg_api = MultiXml.parse(response.body)['orcid_message']['error_desc']
+      raise error_msg_api
     end
   end
 
@@ -116,50 +118,7 @@ class OrcidClaim
       insert_id(xml, 'issn', @work['journal']['issn']) if has_path?(@work, ['journal', 'issn'])
     }
   end
-
-  def insert_pub_date xml
-    month_str = pad_date_item(@work['published']['month'])
-    day_str = pad_date_item(@work['published']['day'])
-    if @work['published']
-      xml.send(:'publication-date') {
-        xml.year(@work['published']['year'].to_i.to_s)
-        xml.month(month_str) if month_str
-        xml.day(day_str) if day_str
-      }
-    end
-  end
-
-  def insert_type xml
-    # xml.send(:'work-type', orcid_work_type(@work['type']))
-    xml.send(:'work-type', orcid_work_type("misc"))
-  end
-
-  def insert_titles xml
-    subtitle = case @work['type']
-               when 'journal_article'
-                 if has_path?(@work, ['journal', 'full_title'])
-                   @work['journal']['full_title']
-                 else
-                   nil
-                 end
-               when 'conference_paper'
-                 if has_path?(@work, ['proceedings', 'title'])
-                   @work['proceedings']['title']
-                 else
-                   nil
-                 end
-               else
-                 nil
-               end
-
-    if subtitle || @work['title']
-      xml.send(:'work-title') {
-        xml.title(@work['title']) if @work['title']
-        xml.subtitle(subtitle) if subtitle
-      }
-    end
-  end
-
+  
   def insert_contributors xml
     if @work['contributors'] && !@work['contributors'].count.zero?
       xml.send(:'work-contributors') {
@@ -201,6 +160,7 @@ class OrcidClaim
     end
   end
 
+
   def insert_extid_common_name xml
     xml.send(:'external-id-common-name', "ISNI")
   end
@@ -213,6 +173,48 @@ class OrcidClaim
     xml.send(:'external-id-url', @record['uri'])
   end
 
+  def xml_root_attributes
+    
+  end
+
+  def insert_work xml
+    xml.send(:'orcid-activities') {
+      xml.send(:'orcid-works') {
+        xml.send(:'orcid-work') {
+          xml.send(:'work-title') {
+            xml.title(@work['title'])
+          }
+          xml.send(:'work-citation') {
+            xml.send(:'work-citation-type', 'formatted-unspecified')
+            xml.citation {
+              xml.cdata("#{@work['title']} by #{@work['author']}. Publisher: #{@work['publisher']}, #{@work['year']}")
+            }
+          }
+          xml.send(:'work-type', "book")
+          xml.send(:'publication-date') {
+            xml.year(@work['year'].to_i.to_s)
+          }          
+          xml.send(:'work-external-identifiers') {
+            insert_id(xml, 'isbn', @work['identifier'])
+          }
+
+          #insert_contributors(xml)
+        }
+      }
+    }    
+  end
+
+  def insert_bio xml
+    xml.send(:'orcid-bio') {
+      xml.send(:'external-identifiers') {
+        xml.send(:'external-identifier') {
+          insert_extid_common_name(xml)
+          insert_extid_ref(xml)
+          insert_extid_url(xml)
+        }
+      }
+    }    
+  end
 
   def to_xml
     root_attributes = {
@@ -226,15 +228,12 @@ class OrcidClaim
       xml.send(:'orcid-message', root_attributes) {
         xml.send(:'message-version', '1.1')
         xml.send(:'orcid-profile') {
-          xml.send(:'orcid-bio') {
-            xml.send(:'external-identifiers') {
-              xml.send(:'external-identifier') {
-                insert_extid_common_name(xml)
-                insert_extid_ref(xml)
-                insert_extid_url(xml)
-              }
-            }
-          }
+
+          if(!@work.nil?) 
+            insert_work(xml)
+          else
+            insert_bio(xml)
+          end
         }
       }
     end.to_xml

@@ -53,14 +53,13 @@ configure do
                                        settings.orcid[:client_secret],
                                        {:site => settings.orcid[:site]})
 
-  # Set up session and auth middlewares for ORCID sign in
+  # Set up session and auth middlewares for ORCID sign in, including the OAuth scope to request authz from user
   use Rack::Session::Mongo, settings.mongo[settings.mongo_db]
   use Rack::Flash
   use OmniAuth::Builder do
     provider :orcid, settings.orcid[:client_id], settings.orcid[:client_secret],
     :authorize_params => {
-      # ToDo move the scope params to config file?
-      :scope => '/orcid-profile/read-limited /orcid-bio/external-identifiers/create'
+      :scope => '/orcid-profile/read-limited /orcid-bio/external-identifiers/create /orcid-works/create'
     },
     :client_options => {
       :site => settings.orcid[:site],

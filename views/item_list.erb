@@ -4,23 +4,42 @@
 
 <div class="item-data">
     <p class="lead">ISNI <%= item.id.gsub(/(\d{4})/, '\1 \2').gsub(/\s$/, '') %></p>
-    <p>Names associated with this identifier:</p>
-      <ul>
-        <li><%= item.family_name %>, <%= item.given_names %></li>
+    <h5>Names associated with this identifier:</h5>
+    <ul>
+      <li><%= item.family_name %>, <%= item.given_names %></li>
       <%  item.other_names.each do |n| %>
-        <li><%= n %></li>
+      <li><%= n %></li>
       <% end %>
-      </ul>
+    </ul>
   <%= partial :item_links, :locals => {item: item} %>
+
+  <div class="work-list-outer <% if signed_in? &&  item.in_user_profile? %> work-list-outer-claimed<% end %> hidden">
+    <h5>Works with ISBNs associated with this identifier:</h5>
+    <div class="work-list"  id="<%= item.id %>">
+      <span>Loading work list <br />&nbsp;&nbsp;&nbsp;&nbsp;<img src="/images/ajax-loader.gif" /></span>
+    </div>
+  <% if signed_in? &&  item.in_user_profile? %>
+    <script>
+
+//work_div = $(this).parents('.item-data').find('.work-list-outer');
+//work_div.removeClass("hidden");
+//work_div.find('.work-list').load("/works/list?id=<%= item.id %>", function( response, status, xhr ) {
+//  if ( status == "error" ) {
+//    var msg = "ERROR retrieving work list: ";
+//    work_div.find(".work-list span" ).html( msg + xhr.status + " " + xhr.statusText );
+//  }
+//});
+
+//Reload, to wire up all the new claim/refresh/etc. buttons on the page with the appropriate handlers (see itemlist.js)
+//location.reload;
+//work_div.find('.claim-ok').click(claimOkClickFn);
+//work_div.find('.claim-warn').click(claimWarnClickFn);
+//work_div.find('.claim-none').click(claimNoneClickFn);
+
+    </script>
+
+  <% end %>
+  </div>
 </div>
+<% end %>
 
- <% end %>
-<script>
-  
-  function showCitationsBox(hashed) {
-    $('#citations-' + hashed).modal();
-  }
-
-
-
-</script>
