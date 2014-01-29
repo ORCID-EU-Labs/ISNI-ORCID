@@ -3,6 +3,9 @@
   <li>You can search with multiple names by using the standard
   boolean <em>OR</em> separator. Example: <a href="/?q=darwin%2C+charles+OR+dickens%2C+charles"><em>darwin,
       charles OR dickens, charles</em></a>.</li>
+      <li>You can use wildcards for partial name  matching. Examples: <a href="/?q=darwin%2C*">darwin,*</a> finds all records with the
+      surname Darwin,  while <a href="http://localhost:8080/?q=dickens%2CC*">dickens, C*</a> finds all the Dickens-es whose given name starts with a C.
+        </li>
   <li>You can search again by either manually typing into the search box above and hit Enter<br />
    OR<br />
  you can <a href="/auth/signout?redirect_uri=https://orcid.org/account">log
