@@ -123,7 +123,6 @@ helpers do
         next if pname.nil?
         next if pname['surname'] == "" && pname['forename'] == ""
         pnamestring = (pname['surname']||"") + ", " + (pname['forename']||"")
-        #logger.debug "  - adding pname: --#{pnamestring}--"
         namelist.push pnamestring
 
         # We'll arbitrarily grab the 1st name on the list and set as the "primary"        
@@ -238,7 +237,7 @@ helpers do
     logger.debug "names for building query string from: \n" + names.ai
     names4query = []
     names.each do |n|
-      logger.debug "  -Adding #{n} to name list"
+      logger.debug "  -Adding '#{n}' to name list"
       names4query.push 'pica.na=' + '"' + n + '"'
     end
     qstring = names4query.join " OR "

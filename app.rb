@@ -69,12 +69,19 @@ get '/' do
   else
 
     q = ""
-    if !params.has_key?('q') or params['q'] == ""  
+    if !params.has_key?('q') or params['q'] == ""
       # If user doesn't provide a query string, make one  based on names pulled from his profile      
       logger.info "Building query parameters based on names from ORCID profile: \n" + session[:orcid][:info].ai
       q = [session[:orcid][:info][:name]]
       session[:orcid][:info][:other_names].each {|n| q.push n}
-      logger.debug "q array: " + q.ai
+      
+      # Split up each name and create a 'surname,firstname/initials' query expression, to better work with ISNI search API
+      q.map! do |n|
+        (rest, given_name) = n.match(/^(.+) (\S+)$/)[1..2] # crude: the surname is assumed to be the last word in the name string
+        !given_name.nil?  ? "#{given_name}, #{rest}" :  n 
+      end
+
+      logger.debug "q array of names from ORCID profile: " + q.ai
     else
       # Otherwise build a query string based on uber-simple boolean OR syntax
       q = params['q'].split(/\s+or\s+/i).map{|n| n}
