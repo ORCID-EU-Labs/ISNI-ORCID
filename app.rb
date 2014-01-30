@@ -68,13 +68,23 @@ get '/' do
     erb :splash, :locals => {:page => {:query => ""}}
   else
 
+    # Before doing anything else, make sure that there is a local Mongo record for this ORICD, as this 
+    # may not have been created if user is logging in for the first time.
+    @orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
+    if @orcid_record.nil?
+      logger.info "Creating new Mongo record for ORCID #{session[:orcid][:uid]}"
+      @orcid_record = OrcidUpdate.perform(session_info)
+    end
+
     q = ""
     if !params.has_key?('q') or params['q'] == ""
-      # If user doesn't provide a query string, make one  based on names pulled from his profile      
-      logger.info "Building query parameters based on names from ORCID profile: \n" + session[:orcid][:info].ai
+      # If user doesn't provide a query string, make one  based on names pulled from his ORCID profile
+      logger.info "Building query parameters for auto search, based on names from ORCID profile data in session: \n" + session[:orcid][:info].ai
       q = [session[:orcid][:info][:name]]
-      session[:orcid][:info][:other_names].each {|n| q.push n}
-      
+      unless session[:orcid][:info][:other_names].nil?
+        session[:orcid][:info][:other_names].each {|n| q.push n}
+      end
+
       # Split up each name and create a 'surname,firstname/initials' query expression, to better work with ISNI search API
       q.map! do |n|
         (rest, given_name) = n.match(/^(.+) (\S+)$/)[1..2] # crude: the surname is assumed to be the last word in the name string
@@ -90,6 +100,16 @@ get '/' do
     page           = query_page
     items_per_page = query_items
 
+
+    # Before doing the search, make sure that there is a local Mongo record for this ORICD, as this 
+    # may not have been created if user is logging in for the first time.
+    @orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
+    if @orcid_record.nil?
+      logger.info "Creating new Mongo record for ORCID #{session[:orcid][:uid]}"
+      OrcidUpdate.perform(session_info)
+      @orcid_record = settings.orcids.find_one({:orcid => sign_in_id})        
+    end
+    
     @total_items = 0 # this gets populated in the search() helper method, IF search picks up one or more records
     results = search settings.server, q
     if @total_items > 0
@@ -321,10 +341,21 @@ end
 
 get '/auth/orcid/callback' do
   session[:orcid] = request.env['omniauth.auth']
-  Resque.enqueue(OrcidUpdate, session_info)
-  logger.info "Signing in via ORCID"
-  logger.debug "got session info:\n" + session.ai
-  update_profile
+  logger.info "Signing in via ORCID #{session[:orcid][:uid]}, got session info:\n" + session.ai
+  if orcid_record = OrcidUpdate.perform(session_info)
+    logger.info "Updated ORCID info went OK, ended with this record: " + orcid_record.ai
+    status = 'ok'
+
+    # add name info to session so it's close at hand
+    session[:orcid][:info][:name] = "#{orcid_record['given_name']} #{orcid_record['family_name']}"
+    session[:orcid][:info][:other_names] = orcid_record['other_names'] || []
+    logger.debug "session data after login & profile sync: " + session.ai    
+  else
+    logger.warn "Problem with updating ORCID info for user #{session[:orcid][:uid]} !!"
+    status = 'oauth_timeout'
+  end
+
+  #Resque.enqueue(OrcidUpdate, session_info)
   erb :auth_callback
 end
 

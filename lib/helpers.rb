@@ -31,23 +31,15 @@ helpers do
     profile_ids = []
     external_ids = []
     work_ids     = []
-    if signed_in?
-      orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-      unless orcid_record.nil? 
-        logger.debug "Getting list of claimed IDs in ORCID record for signed-in user #{sign_in_id}: \n" + orcid_record.ai
-        if orcid_record
-          claimed_ids =  (orcid_record['ids'] || []) +  (orcid_record['locked_ids']  || [])
-          claimed_ids.uniq!
-          
-          claimed_external_ids = orcid_record['external_ids']
-          claimed_work_ids     = orcid_record['work_ids']          
-
-          logger.info "Final list of claimed IDs:\n" + claimed_ids.ai
-          profile_ids = orcid_record['ids']  || []
-          profile_ids.uniq!
-        end
-      end
-    end
+    logger.debug "Getting list of claimed IDs in ORCID record for signed-in user #{sign_in_id}: \n" + @orcid_record.ai
+    claimed_ids =  (@orcid_record['ids'] || []) +  (@orcid_record['locked_ids']  || [])
+    claimed_ids.uniq!    
+    claimed_external_ids = @orcid_record['external_ids']
+    claimed_work_ids     = @orcid_record['work_ids']          
+    
+    logger.info "Final list of claimed IDs:\n" + claimed_ids.ai
+    profile_ids = @orcid_record['ids']  || []
+    profile_ids.uniq!
 
     results = []
     build_query q do |params|
@@ -60,16 +52,13 @@ helpers do
 
       res = server.get '/sru/DB=1.2/', params
       
-      orcid_record = settings.orcids.find_one({:orcid => sign_in_id})
-      logger.debug "Will check list of records found with alraedy-claimed IDs in ORCID profile:\n" + orcid_record.ai
-
       # Extract the parts of the ISNI metadata record we need
       parse_isni_response res.body do |isni, uri, family_name, given_names, other_names, works|
         
         # Determine if this ID is claimed already
         claimed = false
-        unless orcid_record['external_ids'].nil?
-          claimed = orcid_record['external_ids'].any? {|h| h["id"] == isni && h["type"] == "ISNI" }
+        unless @orcid_record['external_ids'].nil?
+          claimed = @orcid_record['external_ids'].any? {|h| h["id"] == isni && h["type"] == "ISNI" }
         end
         in_profile = claimed
           
