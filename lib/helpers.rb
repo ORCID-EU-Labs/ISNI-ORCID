@@ -172,6 +172,7 @@ helpers do
     work['author']    = result['author']
     work['year']      = result['year']
     work['publisher'] = result['publisher']
+    work['city']      = result['city']
     work['url']       = "http://www.worldcat.org/isbn/" + work_id
     
     # A bit of cleanup

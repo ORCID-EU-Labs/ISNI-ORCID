@@ -185,9 +185,18 @@ class OrcidClaim
             xml.title(@work['title'])
           }
           xml.send(:'work-citation') {
-            xml.send(:'work-citation-type', 'formatted-unspecified')
+            xml.send(:'work-citation-type', 'bibtex')
             xml.citation {
-              xml.cdata("#{@work['title']} by #{@work['author']}. Publisher: #{@work['publisher']}, #{@work['year']}")
+              xml.cdata(%Q|@BOOK{#{@work['author'].gsub(/\W+/, '')}_#{@work['year']}_#{@work['identifier']}, 
+   isbn = {#{@work['identifier']}}, 
+   title = {#{@work['title']}}, 
+   url = {#{@work['url']}}, 
+   author={#{@work['author']}}, 
+   publisher = {#{@work['publisher']}}, 
+   year = {#{@work['year']}}, 
+   address = {#{@work['city']}}
+}|
+)
             }
           }
           xml.send(:'work-type', "book")
