@@ -87,7 +87,8 @@ get '/' do
 
       # Split up each name and create a 'surname,firstname/initials' query expression, to better work with ISNI search API
       q.map! do |n|
-        (rest, given_name) = n.match(/^(.+) (\S+)$/)[1..2] # crude: the surname is assumed to be the last word in the name string
+        # crude logic here: the surname is assumed to be the last word in the name string
+        (rest, given_name) = n.match(/^(.+) (\S+)$/)
         !given_name.nil?  ? "#{given_name}, #{rest}" :  n 
       end
 
