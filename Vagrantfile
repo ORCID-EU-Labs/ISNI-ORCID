@@ -6,10 +6,43 @@ Vagrant.configure("2") do |config|
   # options are documented and commented below. For a complete reference,
   # please see the online documentation at vagrantup.com.
 
+  # Install latest version of Chef
+  config.omnibus.chef_version = :latest
+
+
   # Every Vagrant virtual environment requires a box to build off of.
-  config.vm.box = "hashicorp/precise64"
-  
-  config.vm.hostname = "isni2orcid"
+
+  # Override settings for specific providers
+
+  # Local virtual machine via Virtualbox
+  config.vm.provider :virtualbox do |vb, override|
+    vb.name = "ISNI-ORCID"
+    vb.customize ["modifyvm", :id, "--memory", "2048"]
+    config.vm.box = "precise64"
+    # The url from where the 'config.vm.box' box will be fetched if it
+    # doesn't already exist on the user's system.
+    config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+  end
+
+  # Remote virtual machine in the AWS cloud
+  config.vm.provider :aws do |aws, override|
+    aws.access_key_id = ENV['AWS_ACCESS_KEY']
+    aws.secret_access_key = ENV['AWS_SECRET']
+    aws.region = "eu-west-1"
+    aws.keypair_name = "vagrant"
+    #aws.security_groups = ["sg-36e6f354"]
+    aws.instance_type = "m1.small"
+    aws.ami = "ami-8e987ef9"
+    aws.tags = { Name: ENV['AWS_TAGS_NAME'] }
+
+    override.ssh.username = "ubuntu"
+    override.ssh.private_key_path = ENV['SSH_KEY_PATH']
+    config.vm.box = "dummy"
+
+  end
+
+ 
+  config.vm.hostname = "ISNI-ORCID"
 
   # Assign this VM to a host-only network IP, allowing you to access it
   # via the IP. Host-only networks can talk to the host machine as well as
