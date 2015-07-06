@@ -23,7 +23,7 @@ GIT
   ref: master
   sha: ba35d03c9bb1f0f0d3fe44a50f68569078639acc
   specs:
-    cr-search (1.0.1)
+    cr-search (1.0.2)
       apt (>= 0.0.0)
       build-essential (>= 0.0.0)
       chef-mongodb (>= 0.0.0)

@@ -36,7 +36,7 @@ class OrcidUpdate
       client = OAuth2::Client.new( @conf['orcid']['client_id'],  @conf['orcid']['client_secret'], opts)
       token = OAuth2::AccessToken.new(client, @oauth['credentials']['token'])
       headers = {'Accept' => 'application/json'}
-      response = token.get "/v1.1/#{uid}/orcid-profile", {:headers => headers}
+      response = token.get "/v1.2/#{uid}/orcid-profile", {:headers => headers}
 
       # Extract the info we need from the ORCID record
       if response.status == 200
