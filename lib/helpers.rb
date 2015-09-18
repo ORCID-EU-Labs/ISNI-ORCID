@@ -161,23 +161,33 @@ helpers do
     end
   end
 
+  #fixed issue with broken worldcat records e.g. http://localhost:8080/works/list?id=0000000066519244
   def lookup_and_add_isbn_metadata! work
-    work_id = work['identifier']
-    xisbn_url = "http://xisbn.worldcat.org/webservices/xid/isbn/#{work_id}/metadata.js?fl=*"
-    logger.info "Retrieving work metadata for ISBN #{work_id}: #{xisbn_url}"
-    response = Faraday.get xisbn_url
-    result = JSON.parse(response.body)["list"][0]
-    #logger.debug "Got work metadata from ISBN #{work_id}:" + result.ai
-    work['title']    = result['title']
-    work['author']    = result['author']
-    work['year']      = result['year']
-    work['publisher'] = result['publisher']
-    work['city']      = result['city']
-    work['url']       = "http://www.worldcat.org/isbn/" + work_id
+    begin
+      work_id = work['identifier']
+      xisbn_url = "http://xisbn.worldcat.org/webservices/xid/isbn/#{work_id}/metadata.js?fl=*"
+      logger.info "Retrieving work metadata for ISBN #{work_id}: #{xisbn_url}"
+      response = Faraday.get xisbn_url
+      result = JSON.parse(response.body)
+      if result.has_key?("list")
+        result = result["list"][0]
+        #logger.debug "Got work metadata from ISBN #{work_id}:" + result.ai
+        work['title']    = result['title']
+        work['author']    = result['author']
+        work['year']      = result['year']
+        work['publisher'] = result['publisher']
+        work['city']      = result['city']
+        work['url']       = "http://www.worldcat.org/isbn/" + work_id
     
-    # A bit of cleanup
-    work['author'].gsub! /^\[/, ""
-    work['author'].gsub! /(\]|\]\.)$/, ""
+        # A bit of cleanup
+        if work.has_key?("author")
+          work['author'].gsub! /^\[/, ""
+          work['author'].gsub! /(\]|\]\.)$/, ""
+        end
+      end
+    rescue Exception=>e
+      logger.info "problem fetching from worldcat"
+    end
   end
 
   def response_format
