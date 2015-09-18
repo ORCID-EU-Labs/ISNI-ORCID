@@ -9,7 +9,6 @@ Vagrant.configure("2") do |config|
   # Install latest version of Chef
   config.omnibus.chef_version = :latest
 
-
   # Every Vagrant virtual environment requires a box to build off of.
 
   # Override settings for specific providers
@@ -19,6 +18,10 @@ Vagrant.configure("2") do |config|
     vb.name = "ISNI-ORCID"
     vb.customize ["modifyvm", :id, "--memory", "2048"]
     config.vm.box = "precise64"
+    #speed up networking!
+    #Something in the install script fails with these settings, but they massively speed things up post-install.
+    #vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    #vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
     # The url from where the 'config.vm.box' box will be fetched if it
     # doesn't already exist on the user's system.
     config.vm.box_url = "http://files.vagrantup.com/precise64.box"

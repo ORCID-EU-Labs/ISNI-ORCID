@@ -47,7 +47,7 @@ class OrcidClaim
     headers = {'Accept' => 'application/json'}
 
     # Choose ORCID API endpoint depending on whether we're POSTIng a work or an external
-    api_endpoint = "/v1.1/#{uid}/" + (@work.nil? ? "orcid-bio/external-identifiers" : "orcid-works")
+    api_endpoint = "/v1.2/#{uid}/" + (@work.nil? ? "orcid-bio/external-identifiers" : "orcid-works")
     logger.info "Connecting to ORCID OAuth API, POSTing claim data to #{opts[:site]}#{api_endpoint}"    
     response = token.post(api_endpoint) do |post|
       post.headers['Content-Type'] = 'application/orcid+xml'
@@ -228,14 +228,14 @@ class OrcidClaim
   def to_xml
     root_attributes = {
       :'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
-      :'xsi:schemaLocation' => 'http://www.orcid.org/ns/orcid http://orcid.github.com/ORCID-Parent/schemas/orcid-message/1.1/orcid-message-1.1.xsd',
+      :'xsi:schemaLocation' => 'http://www.orcid.org/ns/orcid http://orcid.github.com/ORCID-Parent/schemas/orcid-message/1.2/orcid-message-1.2.xsd',
       :'xmlns' => 'http://www.orcid.org/ns/orcid'
     }
 
 
     builder = Nokogiri::XML::Builder.new do |xml|
       xml.send(:'orcid-message', root_attributes) {
-        xml.send(:'message-version', '1.1')
+        xml.send(:'message-version', '1.2')
         xml.send(:'orcid-profile') {
 
           if(!@work.nil?) 
